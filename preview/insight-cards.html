@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Result insight cards (3-up)" subtitle="성향 유형 · 신체나이 · 동년배 비교" viewport="700x180" --><html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 18px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .card {
+    background: var(--bg-elev-1); border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px; display: flex; flex-direction: column; gap: 6px; min-height: 130px;
+  }
+  .eyebrow { font-family: ui-monospace, monospace; font-size: 10px; color: var(--ink-lo); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+  .big { font-family: 'Pretendard', sans-serif; font-weight: 800; font-size: 26px; line-height: 1.1; letter-spacing: -0.02em; margin-top: 6px; }
+  .small { font-size: 13px; color: var(--ink-mid); margin-top: 2px; }
+</style></head><body>
+<div class="row">
+  <div class="card">
+    <div class="eyebrow">성향 유형</div>
+    <div class="big" style="color:var(--ink-hi)">ESTP</div>
+    <div class="small">즉흥 행동형</div>
+  </div>
+  <div class="card">
+    <div class="eyebrow">신체나이</div>
+    <div class="big" style="color:#f5c518">49세</div>
+    <div class="small">실제 45세 · +4세</div>
+  </div>
+  <div class="card">
+    <div class="eyebrow">동년배 비교</div>
+    <div class="big" style="color:var(--ink-hi)">하위 38%</div>
+    <div class="small">40대 초반 남성 기준</div>
+  </div>
+</div>
+</body></html>

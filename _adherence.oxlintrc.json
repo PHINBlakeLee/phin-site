@@ -1,0 +1,187 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "src/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Pretendard|Inter))/i]",
+        "message": "Font not provided by the design system. Available: Pretendard, Inter."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {},
+    "tokens": [
+      "--accent",
+      "--accent-soft",
+      "--bg",
+      "--bg-elev-1",
+      "--bg-elev-2",
+      "--bg-overlay",
+      "--brand",
+      "--brand-bright",
+      "--brand-glow",
+      "--brand-mute",
+      "--brand-strong",
+      "--champagne",
+      "--dur-base",
+      "--dur-fast",
+      "--dur-slow",
+      "--ease",
+      "--font-body",
+      "--font-display",
+      "--font-numeric",
+      "--ink-hi",
+      "--ink-lo",
+      "--ink-mid",
+      "--ink-xlo",
+      "--line",
+      "--line-strong",
+      "--negative",
+      "--positive",
+      "--r-2xl",
+      "--r-lg",
+      "--r-md",
+      "--r-pill",
+      "--r-sm",
+      "--r-xl",
+      "--space-2xl",
+      "--space-3xl",
+      "--space-4xl",
+      "--space-5xl",
+      "--space-lg",
+      "--space-md",
+      "--space-sm",
+      "--space-xl",
+      "--space-xs",
+      "--space-xxs",
+      "--tier-blue",
+      "--tier-color",
+      "--tier-gray",
+      "--tier-green",
+      "--tier-red",
+      "--tier-yellow",
+      "--type-body",
+      "--type-body-lg",
+      "--type-body-sm",
+      "--type-caption",
+      "--type-display-lg",
+      "--type-display-md",
+      "--type-display-sm",
+      "--type-display-xl",
+      "--type-h1",
+      "--type-h2",
+      "--type-hero",
+      "--type-micro",
+      "--warning"
+    ],
+    "tokenKinds": {
+      "--bg": "color",
+      "--bg-elev-1": "shadow",
+      "--bg-elev-2": "shadow",
+      "--bg-overlay": "color",
+      "--brand": "color",
+      "--brand-strong": "color",
+      "--accent": "color",
+      "--accent-soft": "color",
+      "--brand-bright": "color",
+      "--brand-mute": "color",
+      "--brand-glow": "color",
+      "--champagne": "color",
+      "--ink-hi": "color",
+      "--ink-mid": "color",
+      "--ink-lo": "color",
+      "--ink-xlo": "color",
+      "--line": "color",
+      "--line-strong": "color",
+      "--tier-gray": "color",
+      "--tier-red": "color",
+      "--tier-yellow": "color",
+      "--tier-blue": "color",
+      "--tier-green": "color",
+      "--positive": "color",
+      "--warning": "color",
+      "--negative": "color",
+      "--font-display": "font",
+      "--font-body": "font",
+      "--font-numeric": "font",
+      "--type-hero": "font",
+      "--type-display-xl": "font",
+      "--type-display-lg": "font",
+      "--type-display-md": "font",
+      "--type-display-sm": "font",
+      "--type-h1": "font",
+      "--type-h2": "font",
+      "--type-body-lg": "font",
+      "--type-body": "font",
+      "--type-body-sm": "font",
+      "--type-caption": "font",
+      "--type-micro": "font",
+      "--space-xxs": "spacing",
+      "--space-xs": "spacing",
+      "--space-sm": "spacing",
+      "--space-md": "spacing",
+      "--space-lg": "spacing",
+      "--space-xl": "spacing",
+      "--space-2xl": "spacing",
+      "--space-3xl": "spacing",
+      "--space-4xl": "spacing",
+      "--space-5xl": "spacing",
+      "--r-sm": "spacing",
+      "--r-md": "spacing",
+      "--r-lg": "spacing",
+      "--r-xl": "spacing",
+      "--r-2xl": "spacing",
+      "--r-pill": "spacing",
+      "--ease": "other",
+      "--dur-fast": "other",
+      "--dur-base": "other",
+      "--dur-slow": "other",
+      "--tier-color": "color"
+    },
+    "fontFamilies": [
+      "Inter",
+      "Pretendard"
+    ]
+  }
+}

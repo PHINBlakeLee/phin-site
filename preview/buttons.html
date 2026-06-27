@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Buttons · primary / secondary / ghost" subtitle="pill 메인 CTA + 아웃라인 + 고스트" viewport="700x240" --><html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 18px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  .lbl { font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink-lo); }
+</style></head><body>
+<div class="grid">
+  <div class="col">
+    <span class="lbl">primary · default</span>
+    <button class="phin-btn phin-btn-primary">진단 시작</button>
+    <span class="lbl">primary · hover</span>
+    <button class="phin-btn phin-btn-primary" style="background:#5fff86">진단 시작</button>
+    <span class="lbl">primary · disabled</span>
+    <button class="phin-btn phin-btn-primary" disabled>다음</button>
+  </div>
+  <div class="col">
+    <span class="lbl">secondary · default</span>
+    <button class="phin-btn phin-btn-secondary">어떻게 산출되나요?</button>
+    <span class="lbl">secondary · hover</span>
+    <button class="phin-btn phin-btn-secondary" style="background:var(--bg-elev-1); border-color:var(--ink-lo)">어떻게 산출되나요?</button>
+  </div>
+  <div class="col">
+    <span class="lbl">ghost</span>
+    <button class="phin-btn phin-btn-ghost">뒤로</button>
+    <span class="lbl">ghost · hover</span>
+    <button class="phin-btn phin-btn-ghost" style="color:var(--ink-hi)">뒤로</button>
+  </div>
+</div>
+</body></html>

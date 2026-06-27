@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Tier ladder" subtitle="5등급 사다리 · 현재 등급 강조, 나머지 디머징" viewport="700x130" --><html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 18px; }
+  .card {
+    background: var(--bg-elev-1); border: 1px solid var(--line); border-radius: 18px; padding: 18px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .label { font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink-lo); }
+  .ladder { display: flex; gap: 6px; }
+  .step { flex: 1; border-radius: 10px; padding: 10px 8px; display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--line); transition: all 220ms ease; opacity: 0.5; }
+  .step.active { opacity: 1; }
+  .dot { width: 10px; height: 10px; border-radius: 9999px; }
+  .name { font-family: 'Pretendard', sans-serif; font-weight: 800; font-size: 11px; color: var(--ink-mid); letter-spacing: -0.01em; }
+  .active .name { color: var(--ink-hi); }
+  .range { font-family: ui-monospace, monospace; font-size: 9px; color: var(--ink-lo); }
+</style></head><body>
+<div class="card">
+  <div class="label">티어 사다리 · current: BLUE</div>
+  <div class="ladder">
+    <div class="step"><span class="dot" style="background:#888"></span><span class="name">GRAY</span><span class="range">0–34</span></div>
+    <div class="step"><span class="dot" style="background:#ff4a4a"></span><span class="name">RED</span><span class="range">35–49</span></div>
+    <div class="step"><span class="dot" style="background:#f5c518"></span><span class="name">YELLOW</span><span class="range">50–64</span></div>
+    <div class="step active" style="background:#4a9eff18; border-color:#4a9eff;"><span class="dot" style="background:#4a9eff; box-shadow:0 0 12px #4a9eff"></span><span class="name">BLUE</span><span class="range">65–79</span></div>
+    <div class="step"><span class="dot" style="background:#39ff6a"></span><span class="name">GREEN</span><span class="range">80–100</span></div>
+  </div>
+</div>
+</body></html>

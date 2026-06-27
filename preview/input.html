@@ -1,0 +1,12 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Text input" subtitle="default / filled / focused / error" viewport="700x240" --><html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 18px; }
+  .row { display: grid; grid-template-columns: 100px 1fr; gap: 14px; align-items: center; margin-bottom: 12px; }
+  .lbl { font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink-lo); }
+</style></head><body>
+<div class="row"><span class="lbl">default</span><input class="phin-input" placeholder="이메일을 입력하세요"></div>
+<div class="row"><span class="lbl">filled</span><input class="phin-input" value="blake@phin.health"></div>
+<div class="row"><span class="lbl">focused</span><input class="phin-input" value="blake@phin.health" style="border-color:var(--brand-bright);"></div>
+<div class="row"><span class="lbl">error</span><input class="phin-input" value="not-an-email" style="border-color:#ff4a4a; color:#ff4a4a;"></div>
+</body></html>

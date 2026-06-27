@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- @dsCard group="Colors" name="Surface · 다크 조을 4단계" subtitle="Canvas → Elev 1 → Elev 2 → Overlay" viewport="700x200" --><html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 18px; }
+  .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .sw { padding: 14px; border-radius: 12px; min-height: 140px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--line); }
+  .name { font-weight: 600; font-size: 13px; color: var(--ink-hi); }
+  .role { font-size: 11px; color: var(--ink-mid); margin-top: 2px; }
+  .hex { font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink-lo); }
+</style></head><body>
+<div class="row">
+  <div class="sw" style="background:#0a0f0c">
+    <div><div class="name">Canvas</div><div class="role">base page bg</div></div>
+    <div class="hex">#0a0f0c</div>
+  </div>
+  <div class="sw" style="background:#121814">
+    <div><div class="name">Elev 1</div><div class="role">default card</div></div>
+    <div class="hex">#121814</div>
+  </div>
+  <div class="sw" style="background:#1a221d">
+    <div><div class="name">Elev 2</div><div class="role">hover · nested card</div></div>
+    <div class="hex">#1a221d</div>
+  </div>
+  <div class="sw" style="background:#050807">
+    <div><div class="name">Overlay</div><div class="role">scrim base @ 70%</div></div>
+    <div class="hex">#050807</div>
+  </div>
+</div>
+</body></html>

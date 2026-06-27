@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- @dsCard group="Spacing" name="Radius 스케일" subtitle="20px 카드 · 9999px 버튼 pill — 서론 속 이미지" viewport="700x180" --><html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 18px; }
+  .row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .item { display:flex; flex-direction:column; align-items:center; gap: 6px; }
+  .swatch { width: 72px; height: 72px; background: var(--bg-elev-2); border: 1px solid var(--line-strong); }
+  .featured { background: var(--brand-bright); border: 0; }
+  .tag { font-family: ui-monospace, monospace; font-size: 10px; color: var(--ink-lo); }
+  .val { font-size: 12px; font-weight: 700; color: var(--ink-hi); }
+</style></head><body>
+<div class="row">
+  <div class="item"><div class="swatch" style="border-radius:0px"></div><div class="val">0</div><div class="tag">sharp</div></div>
+  <div class="item"><div class="swatch" style="border-radius:8px"></div><div class="val">8</div><div class="tag">sm</div></div>
+  <div class="item"><div class="swatch" style="border-radius:12px"></div><div class="val">12</div><div class="tag">md ★</div></div>
+  <div class="item"><div class="swatch" style="border-radius:16px"></div><div class="val">16</div><div class="tag">lg ★</div></div>
+  <div class="item"><div class="swatch featured" style="border-radius:20px"></div><div class="val">20</div><div class="tag">xl · card</div></div>
+  <div class="item"><div class="swatch" style="border-radius:9999px"></div><div class="val">∞</div><div class="tag">pill · btn</div></div>
+</div>
+</body></html>

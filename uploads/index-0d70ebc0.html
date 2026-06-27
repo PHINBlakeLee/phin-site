@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0f0c">
+  <title>PHiN — 당신은 핀인가, 아닌가?</title>
+  <link rel="stylesheet" href="colors_and_type.css">
+  <style>
+    body { background: var(--bg); color: var(--ink-hi); }
+    #root { min-height: 100vh; overflow-x: hidden; }
+
+    @media (max-width: 768px) {
+      .phin-nav-desktop { display: none !important; }
+      .phin-hero { font-size: var(--tweak-hero-mobile, 56px) !important; }
+      .phin-container, .phin-container-sm {
+        padding-left: var(--tweak-container-pad-mobile, 18px) !important;
+        padding-right: var(--tweak-container-pad-mobile, 18px) !important;
+      }
+      .tier-card, .feature-card {
+        padding: var(--tweak-card-pad-mobile, 14px) calc(var(--tweak-card-pad-mobile, 14px) + 2px) !important;
+      }
+      body[data-tier-layout="list"]   .phin-tier-grid { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+      body[data-tier-layout="row"]    .phin-tier-grid { display: grid !important; grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; }
+      body[data-tier-layout="row"] .tier-card { flex-direction: column; padding: 12px 6px !important; align-items: center; text-align: center; }
+      body[data-tier-layout="row"] .tier-card__body { flex-direction: column; gap: 4px; }
+      body[data-tier-layout="row"] .tier-card__name { font-size: 11px; line-height: 1.15; }
+      body[data-tier-layout="row"] .tier-card__range { font-size: 9px; }
+      body[data-tier-layout="row"] .tier-card__dot  { width: 18px; height: 18px; }
+      body[data-tier-layout="carousel"] .phin-tier-grid { display: flex !important; flex-direction: row !important; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px !important; padding: 4px 0 12px; scrollbar-width: none; }
+      body[data-tier-layout="carousel"] .phin-tier-grid::-webkit-scrollbar { display: none; }
+      body[data-tier-layout="carousel"] .phin-tier-grid > * { flex: 0 0 70vw; scroll-snap-align: start; }
+      body[data-feature-layout="list"] .phin-feature-grid { display: flex !important; flex-direction: column !important; gap: 8px !important; }
+      body[data-feature-layout="carousel"] .phin-feature-grid { display: flex !important; flex-direction: row !important; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px !important; padding: 4px 0 12px; scrollbar-width: none; }
+      body[data-feature-layout="carousel"] .phin-feature-grid::-webkit-scrollbar { display: none; }
+      body[data-feature-layout="carousel"] .phin-feature-grid > * { flex: 0 0 80vw; scroll-snap-align: start; }
+      .phin-mbti-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      .phin-insight-grid { grid-template-columns: 1fr !important; }
+      .phin-ladder { gap: 4px !important; }
+      .phin-ladder > div { padding: 8px 6px !important; }
+      .phin-multi-grid { grid-template-columns: 1fr !important; }
+      .phin-ab-grid { grid-template-columns: 1fr !important; }
+      .phin-basic-grid[data-cols="4"],
+      .phin-basic-grid[data-cols="5"] { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+    body[data-grain="off"]::before { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- ★ Supabase Publishable Key 주입 — 여기만 교체하면 됨 -->
+  <script>
+    window.__PHIN_SUPABASE_KEY__ = 'sb_publishable_8Ki3pleLJHWyKF0N5ATRJQ_f18vpZGZ';
+  </script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+  <script src="src/scoring.js"></script>
+  <script src="_ds_bundle.js"></script>
+  <script type="text/babel" src="src/tweaks-panel.jsx"></script>
+  <script type="text/babel" src="src/Shared.jsx"></script>
+  <script type="text/babel" src="src/Landing.jsx"></script>
+  <script type="text/babel" src="src/Steps.jsx"></script>
+  <script type="text/babel" src="src/Result.jsx"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    const SCREENS = ['landing', 's1', 's2', 's3', 's4', 's5', 's6', 'result'];
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "accent": "#39ff6a",
+      "heroSizeMobile": 58,
+      "cardPaddingMobile": 14,
+      "containerPaddingMobile": 14,
+      "tierLayoutMobile": "row",
+      "featureLayoutMobile": "list",
+      "showFilmGrain": true
+    }/*EDITMODE-END*/;
+
+    function App() {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const [screen, setScreen] = React.useState('landing');
+      const [answers, setAnswers] = React.useState(() => {
+        try { return JSON.parse(localStorage.getItem('phin_answers')) || {}; }
+        catch (e) { return {}; }
+      });
+
+      React.useEffect(() => {
+        const r = document.documentElement.style;
+        r.setProperty('--accent', tweaks.accent);
+        r.setProperty('--brand-bright', tweaks.accent);
+        r.setProperty('--tweak-hero-mobile', tweaks.heroSizeMobile + 'px');
+        r.setProperty('--tweak-card-pad-mobile', tweaks.cardPaddingMobile + 'px');
+        r.setProperty('--tweak-container-pad-mobile', tweaks.containerPaddingMobile + 'px');
+        document.body.dataset.tierLayout = tweaks.tierLayoutMobile;
+        document.body.dataset.featureLayout = tweaks.featureLayoutMobile;
+        document.body.dataset.grain = tweaks.showFilmGrain ? 'on' : 'off';
+      }, [tweaks]);
+
+      React.useEffect(() => {
+        localStorage.setItem('phin_answers', JSON.stringify(answers));
+      }, [answers]);
+
+      React.useEffect(() => {
+        const saved = localStorage.getItem('phin_screen');
+        if (saved && SCREENS.includes(saved)) setScreen(saved);
+      }, []);
+      React.useEffect(() => {
+        localStorage.setItem('phin_screen', screen);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }, [screen]);
+
+      const go = (s) => setScreen(s);
+      const restart = () => { setAnswers({}); go('landing'); };
+
+      React.useEffect(() => {
+        window.phinGo = (s) => { if (SCREENS.includes(s)) setScreen(s); };
+        window.phinSetAnswers = setAnswers;
+      }, []);
+
+      let body;
+      switch (screen) {
+        case 'landing': body = <Landing onStart={() => go('s1')} />; break;
+        case 's1': body = <Step1 answers={answers} setAnswers={setAnswers} onBack={() => go('landing')} onNext={() => go('s2')} />; break;
+        case 's2': body = <Step2 answers={answers} setAnswers={setAnswers} onBack={() => go('s1')} onNext={() => go('s3')} />; break;
+        case 's3': body = <Step3 answers={answers} setAnswers={setAnswers} onBack={() => go('s2')} onNext={() => go('s4')} />; break;
+        case 's4': body = <Step4 answers={answers} setAnswers={setAnswers} onBack={() => go('s3')} onNext={() => go('s5')} />; break;
+        case 's5': body = <Step5 answers={answers} setAnswers={setAnswers} onBack={() => go('s4')} onNext={() => go('s6')} />; break;
+        case 's6': body = <Step6 answers={answers} setAnswers={setAnswers} onBack={() => go('s5')} onNext={() => go('result')} />; break;
+        case 'result': body = <Result answers={answers} onRestart={restart} />; break;
+        default: body = <Landing onStart={() => go('s1')} />;
+      }
+
+      return (
+        <React.Fragment>
+          <div key={screen} data-screen-label={screen}>{body}</div>
+          <FloatingTweaksToggle />
+          <TweaksPanel title="Tweaks · 모바일 미세 조정" noDeckControls>
+            <TweakSection label="컬러">
+              <TweakColor label="액센트" value={tweaks.accent}
+                options={['#39ff6a','#a8f0c4','#5fe39a','#7be86c','#46d4a3']}
+                onChange={(v) => setTweak('accent', v)} />
+            </TweakSection>
+            <TweakSection label="모바일 레이아웃">
+              <TweakRadio label="티어 배치" value={tweaks.tierLayoutMobile}
+                options={[{label:'리스트',value:'list'},{label:'한 행',value:'row'},{label:'캐러셀',value:'carousel'}]}
+                onChange={(v) => setTweak('tierLayoutMobile', v)} />
+              <TweakRadio label="기능 배치" value={tweaks.featureLayoutMobile}
+                options={[{label:'리스트',value:'list'},{label:'캐러셀',value:'carousel'}]}
+                onChange={(v) => setTweak('featureLayoutMobile', v)} />
+              <TweakSlider label="히어로 크기" value={tweaks.heroSizeMobile} min={40} max={88} step={2} unit="px" onChange={(v) => setTweak('heroSizeMobile', v)} />
+              <TweakSlider label="카드 패딩" value={tweaks.cardPaddingMobile} min={8} max={28} step={2} unit="px" onChange={(v) => setTweak('cardPaddingMobile', v)} />
+              <TweakSlider label="좌우 여백" value={tweaks.containerPaddingMobile} min={8} max={32} step={2} unit="px" onChange={(v) => setTweak('containerPaddingMobile', v)} />
+            </TweakSection>
+            <TweakSection label="기타">
+              <TweakToggle label="필름 그레인" value={tweaks.showFilmGrain} onChange={(v) => setTweak('showFilmGrain', v)} />
+            </TweakSection>
+          </TweaksPanel>
+        </React.Fragment>
+      );
+    }
+
+    function FloatingTweaksToggle() {
+      const [hidden, setHidden] = React.useState(false);
+      React.useEffect(() => {
+        const onMsg = (e) => {
+          const t = e?.data?.type;
+          if (t === '__activate_edit_mode') setHidden(true);
+          else if (t === '__deactivate_edit_mode' || t === '__edit_mode_dismissed') setHidden(false);
+        };
+        window.addEventListener('message', onMsg);
+        return () => window.removeEventListener('message', onMsg);
+      }, []);
+      const open = () => window.postMessage({ type: '__activate_edit_mode' }, '*');
+      if (hidden) return null;
+      return (
+        <button onClick={open} aria-label="Tweaks 열기" style={{
+          position:'fixed', right:16, bottom:16, zIndex:9000,
+          width:44, height:44, borderRadius:9999,
+          background:'#111613', color:'var(--ink-mid)',
+          border:'1px solid var(--line-strong)',
+          display:'inline-flex', alignItems:'center', justifyContent:'center',
+          cursor:'pointer', boxShadow:'0 8px 24px rgba(0,0,0,0.4)', fontSize:18,
+        }}>⚙</button>
+      );
+    }
+
+    function tryMount() {
+      if (!window.Landing || !window.Step1 || !window.Result || !window.TweaksPanel) {
+        setTimeout(tryMount, 50);
+        return;
+      }
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    }
+    tryMount();
+  </script>
+</body>
+</html>

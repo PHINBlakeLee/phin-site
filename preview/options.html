@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Option tile (시그니처 인터랙션)" subtitle="idle / hover / selected / unselected — 4개 상태" viewport="700x200" --><html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 18px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .lbl { font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink-lo); margin-bottom: 6px; }
+  .col { display: flex; flex-direction: column; }
+</style></head><body>
+<div class="grid">
+  <div class="col">
+    <div class="lbl">idle</div>
+    <button class="phin-option">
+      <span style="font-size:26px;">🍺</span>
+      <span style="flex:1;">술을 주 2회 이상 마신다</span>
+    </button>
+  </div>
+  <div class="col">
+    <div class="lbl">hover</div>
+    <button class="phin-option" style="border-color:var(--line-strong); color:var(--ink-hi)">
+      <span style="font-size:26px;">🚬</span>
+      <span style="flex:1;">현재 흡연 중이다</span>
+    </button>
+  </div>
+  <div class="col">
+    <div class="lbl">selected</div>
+    <button class="phin-option is-selected">
+      <span style="font-size:26px;">🌙</span>
+      <span style="flex:1;">자기 전 야식을 먹는다</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#39ff6a" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+    </button>
+  </div>
+  <div class="col">
+    <div class="lbl">unselected (dimmed)</div>
+    <button class="phin-option is-unselected">
+      <span style="font-size:26px; filter:saturate(0.4) opacity(0.55);">☕</span>
+      <span style="flex:1;">커피를 하루 3잔 이상</span>
+    </button>
+  </div>
+</div>
+</body></html>

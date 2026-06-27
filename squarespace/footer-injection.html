@@ -1,0 +1,1693 @@
+<!-- ============================================================
+     PHiN — Squarespace 페이지 푸터 코드 삽입(Page Footer Code Injection)
+     #phin-root 가 이미 본문에 있어야 하므로 반드시 "푸터"에 넣을 것 (헤더 아님)
+     ============================================================ -->
+<script type="text/babel">
+
+// ════════════════════════════════════════════════════════
+// scoring.js v5
+// ════════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  function clamp(val, min, max) {
+    return Math.min(Math.max(val, min), max);
+  }
+
+  function ageMultiplier(age) {
+    if (age < 30) return 0.6;
+    if (age < 40) return 0.85;
+    if (age < 50) return 1.0;
+    if (age < 60) return 1.3;
+    if (age < 70) return 1.6;
+    return 1.8;
+  }
+
+  function smokingDeduction({ smokingStatus, cigarettesPerDay, quitMonths, age }) {
+    if (smokingStatus === 'none') return 0;
+    let base = 0;
+    if (smokingStatus === 'current') {
+      if (cigarettesPerDay >= 40)      base = 25;
+      else if (cigarettesPerDay >= 20) base = 20;
+      else if (cigarettesPerDay >= 10) base = 13;
+      else                             base = 6;
+    } else if (smokingStatus === 'quit') {
+      base = quitMonths >= 24 ? 0 : quitMonths >= 12 ? 5 : quitMonths >= 6 ? 10 : 16;
+    }
+    return clamp(base * ageMultiplier(age), 0, 25);
+  }
+
+  function drinkingDeduction({ drinkingStatus, quitMonths, age }) {
+    let base = 0;
+    switch (drinkingStatus) {
+      case 'daily':    base = 20; break;
+      case 'frequent': base = 14; break;
+      case 'moderate': base = 8;  break;
+      case 'light':    base = 3;  break;
+      case 'quit':
+        base = quitMonths >= 24 ? 0 : quitMonths >= 12 ? 3 : 7;
+        break;
+      default: base = 0;
+    }
+    return clamp(base * ageMultiplier(age), 0, 20);
+  }
+
+  function exerciseDeduction({ exerciseDaysPerWeek, age }) {
+    let base = 0;
+    if (exerciseDaysPerWeek === 0)      base = 15;
+    else if (exerciseDaysPerWeek === 1) base = 9;
+    else if (exerciseDaysPerWeek === 2) base = 4;
+    else                                base = 0;
+    return clamp(base * ageMultiplier(age), 0, 15);
+  }
+
+  function sleepDeduction(sleepHours) {
+    if (sleepHours <= 5)   return 15;
+    if (sleepHours <= 6)   return 8;
+    if (sleepHours <= 6.5) return 4;
+    if (sleepHours <= 8.5) return 0;
+    return 4;
+  }
+
+  function stressDeduction(stressLevel) {
+    if (stressLevel === 4) return 10;
+    if (stressLevel === 3) return 6;
+    if (stressLevel === 2) return 2;
+    return 0;
+  }
+
+  function bmiDeduction(bmi) {
+    if (bmi >= 35)   return 12;
+    if (bmi >= 30)   return 8;
+    if (bmi >= 27)   return 4;
+    if (bmi >= 25)   return 2;
+    if (bmi >= 18.5) return 0;
+    return 4;
+  }
+
+  function recoveryBonus({ smokingStatus, smokingQuitMonths, drinkingStatus, drinkingQuitMonths, exerciseDaysPerWeek, exerciseDuration, restingHeartRate }) {
+    let bonus = 0;
+    if (smokingStatus === 'quit') {
+      if (smokingQuitMonths >= 24)      bonus += 10;
+      else if (smokingQuitMonths >= 12) bonus += 5;
+    }
+    if (drinkingStatus === 'quit') {
+      if (drinkingQuitMonths >= 24)      bonus += 8;
+      else if (drinkingQuitMonths >= 12) bonus += 4;
+    }
+    if (exerciseDaysPerWeek >= 3) {
+      if (exerciseDuration === 'over6m')     bonus += 7;
+      else if (exerciseDuration === '3to6m') bonus += 3;
+    }
+    if (restingHeartRate > 0) {
+      if (restingHeartRate <= 60)      bonus += 5;
+      else if (restingHeartRate <= 70) bonus += 2;
+    }
+    return clamp(bonus, 0, 25);
+  }
+
+  function getTier({ rawScore, age, gender, hasOcr, ocrCount }) {
+    const ageIdx = age < 30 ? 0 : age < 40 ? 1 : age < 50 ? 2 : age < 60 ? 3 : 4;
+    const maleThresholds = [
+      [80, 68, 54, 40, 25],
+      [77, 65, 51, 37, 22],
+      [74, 62, 48, 34, 19],
+      [70, 58, 44, 30, 15],
+      [65, 53, 39, 25, 10],
+    ];
+    const offset = gender === 'female' ? 5 : 0;
+    const t = maleThresholds[ageIdx];
+    if (rawScore >= t[0]+offset && hasOcr && ocrCount >= 3) return 'THE_PHIN';
+    if (rawScore >= t[0]+offset && hasOcr && ocrCount >= 1) return 'BLACK';
+    if (rawScore >= t[1]+offset) return 'GREEN';
+    if (rawScore >= t[2]+offset) return 'BLUE';
+    if (rawScore >= t[3]+offset) return 'YELLOW';
+    if (rawScore >= t[4]+offset) return 'RED';
+    return 'GRAY';
+  }
+
+  function tierInfo(tier) {
+    const map = {
+      'THE_PHIN': { label: '최상위 1%',  color: '#FFD700', name: 'THE PHiN' },
+      'BLACK':    { label: '최상위 5%',  color: '#E5E5E5', name: 'BLACK PHiN' },
+      'GREEN':    { label: '상위권',     color: '#34D378', name: 'GREEN PHiN' },
+      'BLUE':     { label: '중상위',     color: '#60A5FA', name: 'BLUE PHiN' },
+      'YELLOW':   { label: '중위',       color: '#FBBF24', name: 'YELLOW PHiN' },
+      'RED':      { label: '중하위',     color: '#F87171', name: 'RED PHiN' },
+      'GRAY':     { label: '하위권',     color: '#9CA3AF', name: 'GRAY PHiN' },
+    };
+    return map[tier] || map['GRAY'];
+  }
+
+  function accuracyIndex({ hasOcr, ocrCount, hasWatchData, hasHeartRate }) {
+    let acc = 0.80;
+    if (hasHeartRate)  acc += 0.02;
+    if (hasWatchData)  acc += 0.03;
+    if (hasOcr) {
+      acc += ocrCount >= 5 ? 0.10 : ocrCount >= 3 ? 0.08 : ocrCount >= 2 ? 0.06 : 0.04;
+    }
+    return clamp(acc, 0.80, 0.95);
+  }
+
+  function calcBodyAge(age, rawScore) {
+    const diff = (55.0 - rawScore) * 0.3;
+    return Math.round(clamp(age + diff, 10, 99));
+  }
+
+  function convertWebAnswers(answers) {
+    const ls      = answers.lifestyle  || [];
+    const issues  = answers.bodyIssues || [];
+    const stepKey = answers.steps      || 'low';
+    const digital = answers.digital    || 'mid';
+
+    const noExerciseSignal = ls.length === 0 && stepKey === 'low';
+
+    const age    = parseInt(answers.ageNum    || answers.age    || 35);
+    const gender = (answers.gender === 'female' || answers.gender === '여성') ? 'female' : 'male';
+    const height = parseFloat(answers.heightNum || answers.height || 170);
+    const weight = parseFloat(answers.weightNum || answers.weight || 70);
+    const bmi    = height > 0 ? weight / Math.pow(height / 100, 2) : 22;
+
+    const smokingStatus    = ls.includes('smoke') ? 'current' : 'none';
+    const cigarettesPerDay = smokingStatus === 'current' ? 20 : 0;
+
+    const drinkingStatus = ls.includes('drink') ? 'frequent' : 'none';
+
+    const sleepHours = issues.includes('sleep') ? 5.0 : 7.0;
+
+    let exerciseDays;
+    if (ls.includes('nosport') || noExerciseSignal) {
+      exerciseDays = 0;
+    } else {
+      exerciseDays = stepKey === 'very' ? 4 : stepKey === 'high' ? 3 : stepKey === 'mid' ? 2 : 1;
+    }
+
+    let stressLevel = 1;
+    if (issues.includes('stress'))                        stressLevel += 2;
+    if (ls.includes('latenight') || ls.includes('irregular')) stressLevel += 1;
+    if (digital === 'high' || digital === 'very')         stressLevel += 1;
+    stressLevel = clamp(stressLevel, 1, 4);
+
+    return {
+      age, gender, bmi,
+      smokingStatus, cigarettesPerDay, smokingQuitMonths: 0,
+      drinkingStatus, drinkingQuitMonths: 0,
+      sleepHours, exerciseDaysPerWeek: exerciseDays,
+      exerciseDuration: 'under3m',
+      stressLevel, restingHeartRate: 0,
+      hasOcr: false, ocrCount: 0, hasWatchData: false, exerciseBonus: 0,
+    };
+  }
+
+  function score(answers) {
+    const p = convertWebAnswers(answers);
+
+    const sd = smokingDeduction({ smokingStatus: p.smokingStatus, cigarettesPerDay: p.cigarettesPerDay, quitMonths: p.smokingQuitMonths, age: p.age });
+    const dd = drinkingDeduction({ drinkingStatus: p.drinkingStatus, quitMonths: p.drinkingQuitMonths, age: p.age });
+    const ed = exerciseDeduction({ exerciseDaysPerWeek: p.exerciseDaysPerWeek, age: p.age });
+    const sl = sleepDeduction(p.sleepHours);
+    const st = stressDeduction(p.stressLevel);
+    const bm = bmiDeduction(p.bmi);
+
+    const totalDeduction = clamp(sd + dd + ed + sl + st + bm, 0, 75);
+
+    const rb         = recoveryBonus({ smokingStatus: p.smokingStatus, smokingQuitMonths: p.smokingQuitMonths, drinkingStatus: p.drinkingStatus, drinkingQuitMonths: p.drinkingQuitMonths, exerciseDaysPerWeek: p.exerciseDaysPerWeek, exerciseDuration: p.exerciseDuration, restingHeartRate: p.restingHeartRate });
+    const totalBonus = clamp(rb, 0, 25);
+
+    const rawScore   = clamp(100 - totalDeduction + totalBonus, 0, 100);
+    const finalScore = Math.round(rawScore);
+
+    const tier = getTier({ rawScore, age: p.age, gender: p.gender, hasOcr: p.hasOcr, ocrCount: p.ocrCount });
+    const info = tierInfo(tier);
+    const acc  = accuracyIndex({ hasOcr: p.hasOcr, ocrCount: p.ocrCount, hasWatchData: p.hasWatchData, hasHeartRate: p.restingHeartRate > 0 });
+    const bAge = calcBodyAge(p.age, rawScore);
+
+    window.PHIN._lastRaw = {
+      gender:          p.gender,
+      age:             p.age,
+      height:          parseFloat(answers.heightNum || 170),
+      weight:          parseFloat(answers.weightNum || 70),
+      bmi:             parseFloat(p.bmi.toFixed(1)),
+      mbti:            answers.mbtiDirect || null,
+      web_phin_score:  finalScore,
+      web_body_age:    bAge,
+      smoking_status:  p.smokingStatus,
+      drinking_status: p.drinkingStatus,
+    };
+
+    console.log('[PHINv5]', { age: p.age, gender: p.gender, bmi: p.bmi.toFixed(1), smokingStatus: p.smokingStatus, drinkingStatus: p.drinkingStatus, exerciseDays: p.exerciseDaysPerWeek, sleepHours: p.sleepHours, stressLevel: p.stressLevel });
+    console.log('[PHINv5 감점]', { sd, dd, ed, sl, st, bm, totalDeduction, totalBonus, rawScore: rawScore.toFixed(1), tier });
+
+    return {
+      totalScore: rawScore,
+      finalScore,
+      tier,
+      tierName:      info.name,
+      tierLabel:     info.label,
+      tierColor:     info.color,
+      bodyAge:       bAge,
+      accuracyIndex: acc,
+      breakdown:     { smoking: sd, drinking: dd, exercise: ed, sleep: sl, stress: st, bmi: bm, bonus: totalBonus },
+      score: finalScore,
+    };
+  }
+
+  window.PHIN = window.PHIN || {};
+  window.PHIN.score         = score;
+  window.PHIN.tierInfo      = tierInfo;
+  window.PHIN.accuracyIndex = accuracyIndex;
+})();
+
+// ════════════════════════════════════════════════════════
+// phin-data.js
+// ════════════════════════════════════════════════════════
+window.PHIN = window.PHIN || {};
+
+window.PHIN.typeNames = {
+  ESTJ:'현실 관리형', ENTJ:'전략 주도형',
+  ESFJ:'돌봄 실천형', ENFJ:'공감 리더형',
+  ESTP:'즉흥 행동형', ENTP:'도전 탐구형',
+  ESFP:'활기 공감형', ENFP:'열정 탐색형',
+  ISTJ:'원칙 수호형', INTJ:'독립 설계형',
+  ISFJ:'조용한 돌봄형',INFJ:'통찰 계획형',
+  ISTP:'분석 행동형', INTP:'사색 탐구형',
+  ISFP:'감성 실천형', INFP:'이상 추구형',
+};
+
+window.PHIN.personalityQs = [
+  { id:'EI', q:'새로운 사람들과 함께할 때 나는?',
+    A:{ label:'에너지가 생기고 활기차진다' },
+    B:{ label:'금방 피로해지고 혼자 있고 싶어진다' } },
+  { id:'SN', q:'문제를 해결할 때 나는?',
+    A:{ label:'경험과 검증된 방법을 따른다' },
+    B:{ label:'새로운 가능성과 아이디어를 탐색한다' } },
+  { id:'TF', q:'중요한 결정을 내릴 때 나는?',
+    A:{ label:'논리와 객관적 사실을 우선시한다' },
+    B:{ label:'감정과 사람들에게 미치는 영향을 고려한다' } },
+  { id:'JP', q:'일상에서 나는?',
+    A:{ label:'계획을 세우고 체계적으로 움직인다' },
+    B:{ label:'상황에 맞게 유연하게 대응한다' } },
+];
+
+window.PHIN.bodyIssues = [
+  { key:'weight',    icon:'⚖️', label:'체중',       desc:'비만 또는 과체중' },
+  { key:'fatigue',   icon:'😴', label:'만성피로',    desc:'항상 피곤하고 에너지 부족' },
+  { key:'sleep',     icon:'🌙', label:'수면',        desc:'잠들기 어렵거나 수면의 질 저하' },
+  { key:'stress',    icon:'🧠', label:'스트레스',    desc:'정신적 압박과 긴장' },
+  { key:'back',      icon:'🦴', label:'허리·관절',   desc:'통증 또는 불편함' },
+  { key:'digestion', icon:'🫃', label:'소화',        desc:'더부룩함, 변비, 속쓰림' },
+  { key:'skin',      icon:'✨', label:'피부',        desc:'트러블, 칙칙함, 노화' },
+  { key:'none',      icon:'💪', label:'별로 없음',   desc:'전반적으로 건강한 편' },
+];
+
+window.PHIN.digital = [
+  { key:'low',  icon:'📵', label:'1시간 미만',  desc:'의식적으로 줄이는 편' },
+  { key:'mid',  icon:'📱', label:'1~3시간',     desc:'평균적인 사용' },
+  { key:'high', icon:'📲', label:'3~6시간',     desc:'꽤 많이 사용하는 편' },
+  { key:'very', icon:'🖥️', label:'6시간 이상',  desc:'거의 항상 화면을 본다' },
+];
+
+window.PHIN.lifestyle = [
+  { key:'smoke',     icon:'🚬', label:'흡연',         desc:'현재 담배를 피운다' },
+  { key:'drink',     icon:'🍺', label:'음주',          desc:'주 2회 이상 음주' },
+  { key:'nosport',   icon:'🛋️', label:'운동 안함',     desc:'주 1회 미만 운동' },
+  { key:'latenight', icon:'🌙', label:'야식',          desc:'밤 10시 이후 식사 잦음' },
+  { key:'irregular', icon:'⏰', label:'불규칙 식사',   desc:'끼니를 자주 거른다' },
+  { key:'highsalt',  icon:'🧂', label:'짜고 매운 음식',desc:'자극적인 식단 선호' },
+  { key:'caffeine',  icon:'☕', label:'카페인 과다',   desc:'하루 3잔 이상 커피·에너지음료' },
+  { key:'none',      icon:'🥗', label:'해당 없음',     desc:'건강한 생활을 유지 중' },
+];
+
+window.PHIN.steps = [
+  { key:'low',  icon:'🐌', label:'3,000보 미만',   desc:'거의 앉아서 생활' },
+  { key:'mid',  icon:'🚶', label:'3,000~7,000보',  desc:'가벼운 이동 수준' },
+  { key:'high', icon:'🏃', label:'7,000~10,000보', desc:'꽤 활동적인 편' },
+  { key:'very', icon:'⚡', label:'10,000보 이상',  desc:'매우 활동적' },
+];
+
+window.PHIN.basics = {
+  gender: ['남성','여성'],
+  age:    ['20대 초반','20대 후반','30대 초반','30대 후반','40대 초반','40대 후반','50대 이상'],
+  height: ['150~160','160~170','170~180','180 이상'],
+  weight: ['50~60kg','60~70kg','70~80kg','80~90kg','90kg 이상'],
+};
+
+window.PHIN._lastRaw = null;
+
+// ════════════════════════════════════════════════════════
+// Shared.jsx
+// ════════════════════════════════════════════════════════
+function Logo({ size = 22 }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'baseline', gap: 0,
+      fontFamily: 'var(--font-display)',
+      fontSize: size, fontWeight: 900, letterSpacing: '-0.04em',
+      color: 'var(--ink-hi)', lineHeight: 1,
+    }}>
+      PHi<span style={{ color: 'var(--accent)' }}>N</span>
+    </div>
+  );
+}
+
+function TopBar({ step, total, onBack }) {
+  return (
+    <div style={{
+      position: 'sticky', top: 0, zIndex: 10,
+      background: 'rgba(10, 15, 12, 0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      borderBottom: '1px solid var(--line)',
+    }}>
+      <div className="phin-container" style={{
+        display: 'flex', alignItems: 'center', gap: 16,
+        height: 56,
+      }}>
+        <button onClick={onBack} className="phin-btn-ghost" style={{
+          background: 'transparent', border: 0, padding: '8px 10px',
+          color: 'var(--ink-mid)', cursor: 'pointer',
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontSize: 14, fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          뒤로
+        </button>
+        <div style={{ flex: 1 }} />
+        <Logo size={18} />
+        <div style={{ flex: 1 }} />
+        <div className="phin-micro" style={{ color: 'var(--ink-mid)', whiteSpace: 'nowrap' }}>
+          STEP {String(step).padStart(2, '0')} <span style={{ color: 'var(--ink-lo)' }}>/ {String(total).padStart(2, '0')}</span>
+        </div>
+      </div>
+      <ProgressBar value={step / total} />
+    </div>
+  );
+}
+
+function ProgressBar({ value }) {
+  return (
+    <div style={{
+      height: 2, background: 'var(--line)', overflow: 'hidden',
+    }}>
+      <div style={{
+        height: '100%',
+        width: `${value * 100}%`,
+        background: 'var(--accent)',
+        transition: 'width 360ms var(--ease)',
+      }} />
+    </div>
+  );
+}
+
+function StepHeader({ eyebrow, title, subtitle }) {
+  return (
+    <div style={{ marginBottom: 32 }}>
+      {eyebrow && (
+        <div className="phin-micro" style={{ color: 'var(--accent)', marginBottom: 12 }}>
+          {eyebrow}
+        </div>
+      )}
+      <h1 className="phin-display-lg t-hi" style={{ marginBottom: 12 }}>
+        {title}
+      </h1>
+      {subtitle && (
+        <p className="phin-body-lg t-mid" style={{ maxWidth: 520, margin: 0 }}>
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ActionBar({ onNext, nextLabel = '다음', disabled = false, hint }) {
+  return (
+    <div style={{
+      position: 'sticky', bottom: 0,
+      background: 'linear-gradient(to top, var(--bg) 60%, rgba(10,15,12,0))',
+      paddingTop: 32, paddingBottom: 24,
+      marginTop: 48,
+    }}>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+      }}>
+        <button
+          className="phin-btn phin-btn-primary"
+          onClick={onNext}
+          disabled={disabled}
+          style={{ minWidth: 220 }}
+        >
+          {nextLabel}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        {hint && <div className="phin-caption t-lo">{hint}</div>}
+      </div>
+    </div>
+  );
+}
+
+function OptionTile({ icon, label, desc, isSelected, isDimmed, onClick }) {
+  let cls = 'phin-option';
+  if (isSelected) cls += ' is-selected';
+  else if (isDimmed) cls += ' is-unselected';
+
+  return (
+    <button className={cls} onClick={onClick}>
+      {icon && (
+        <span style={{
+          fontSize: 26, lineHeight: 1, flexShrink: 0,
+          width: 36, height: 36, display: 'inline-flex',
+          alignItems: 'center', justifyContent: 'center',
+          filter: isSelected ? 'none' : (isDimmed ? 'saturate(0.4) opacity(0.55)' : 'saturate(0.8)'),
+          transition: 'filter 220ms var(--ease)',
+        }}>{icon}</span>
+      )}
+      <span style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span>{label}</span>
+        {desc && (
+          <span style={{
+            fontSize: 13, fontWeight: 500,
+            color: isSelected ? 'var(--ink-mid)' : (isDimmed ? 'var(--ink-xlo)' : 'var(--ink-lo)'),
+          }}>{desc}</span>
+        )}
+      </span>
+      {isSelected && (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 6 9 17l-5-5"/>
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function ABCard({ letter, label, isSelected, isDimmed, onClick }) {
+  let cls = 'phin-option';
+  if (isSelected) cls += ' is-selected';
+  else if (isDimmed) cls += ' is-unselected';
+
+  return (
+    <button className={cls} onClick={onClick} style={{
+      flexDirection: 'column', alignItems: 'flex-start',
+      gap: 12, padding: 24, minHeight: 130,
+      textAlign: 'left', wordBreak: 'keep-all',
+    }}>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 28, height: 28, borderRadius: 9999,
+        background: isSelected ? 'var(--accent)' : 'var(--bg-elev-2)',
+        color: isSelected ? '#03210f' : 'var(--ink-mid)',
+        fontFamily: 'var(--font-numeric)',
+        fontWeight: 800, fontSize: 13,
+      }}>{letter}</span>
+      <span style={{ fontSize: 17, fontWeight: 600, lineHeight: 1.35 }}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function StepLayout({ step, total, onBack, children, action }) {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <TopBar step={step} total={total} onBack={onBack} />
+      <main className="phin-container-sm" style={{ paddingTop: 56, paddingBottom: 32, flex: 1 }}>
+        {children}
+      </main>
+      {action}
+    </div>
+  );
+}
+</script>
+
+<script type="text/babel">
+
+// ════════════════════════════════════════════════════════
+// Landing.jsx
+// ════════════════════════════════════════════════════════
+function ScoreInfoModal({ onClose }) {
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, zIndex:1000,
+      background:'rgba(0,0,0,0.7)',
+      backdropFilter:'blur(8px)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      padding:'20px',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'var(--bg-elev-1)',
+        border:'1px solid var(--line-strong)',
+        borderRadius:20, padding:'32px 28px',
+        maxWidth:520, width:'100%',
+        maxHeight:'85vh', overflowY:'auto',
+      }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
+          <div>
+            <div style={{ fontFamily:'var(--font-numeric)', fontSize:11, fontWeight:700, color:'var(--accent)', letterSpacing:'0.08em', marginBottom:6 }}>HOW IT WORKS</div>
+            <h2 style={{ fontFamily:'var(--font-display)', fontSize:22, fontWeight:800, color:'var(--ink-hi)', margin:0, letterSpacing:'-0.02em' }}>PHIN스코어 산출 방식</h2>
+          </div>
+          <button onClick={onClose} style={{
+            background:'var(--bg-elev-2)', border:'1px solid var(--line)',
+            borderRadius:9999, width:36, height:36,
+            color:'var(--ink-mid)', cursor:'pointer', fontSize:16,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            flexShrink:0,
+          }}>✕</button>
+        </div>
+
+        <div style={{
+          background:'var(--brand-mute)', border:'1px solid var(--accent)',
+          borderRadius:14, padding:'16px 18px', marginBottom:24,
+        }}>
+          <p style={{ color:'var(--ink-hi)', fontSize:14, lineHeight:1.7, margin:0, fontWeight:500 }}>
+            PHIN스코어는 단순한 건강 점수가 아닙니다.<br />
+            <b style={{ color:'var(--accent)' }}>동년배 대비 상대적 건강 위치</b>를 보여주며,
+            나이가 들어도 꾸준한 관리로 높은 점수를 유지할 수 있습니다.
+          </p>
+        </div>
+
+        <div style={{ marginBottom:24 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--ink-mid)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:14 }}>산출 항목</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {[
+              { icon:'🚬', label:'흡연', desc:'흡연 여부·기간·양. 나이가 많을수록 누적 손상으로 감점이 커집니다.', weight:'최대 -25점' },
+              { icon:'🍺', label:'음주', desc:'음주 빈도와 양. 매일 음주는 간 건강과 수면에 복합 영향을 줍니다.', weight:'최대 -20점' },
+              { icon:'🏃', label:'운동', desc:'주간 운동 빈도. 50대 이상은 같은 운동량이어도 더 중요하게 반영됩니다.', weight:'최대 -15점' },
+              { icon:'🌙', label:'수면', desc:'하루 평균 수면 시간. 7~8시간이 최적, 5시간 이하는 크게 감점됩니다.', weight:'최대 -15점' },
+              { icon:'🧠', label:'스트레스', desc:'일상적인 스트레스 수준. 만성 스트레스는 면역·심혈관에 영향을 줍니다.', weight:'최대 -10점' },
+              { icon:'⚖️', label:'BMI', desc:'체중과 키로 산출. 정상 범위(18.5~25)가 0점, 비만도에 따라 감점됩니다.', weight:'최대 -12점' },
+            ].map((item, i) => (
+              <div key={i} style={{
+                display:'flex', gap:14, alignItems:'flex-start',
+                background:'var(--bg-elev-2)', borderRadius:12, padding:'14px 16px',
+              }}>
+                <span style={{ fontSize:22, flexShrink:0, marginTop:1 }}>{item.icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
+                    <span style={{ fontWeight:700, fontSize:14, color:'var(--ink-hi)' }}>{item.label}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#F87171', background:'rgba(248,113,113,0.12)', padding:'2px 8px', borderRadius:9999 }}>{item.weight}</span>
+                  </div>
+                  <p style={{ fontSize:12, color:'var(--ink-mid)', margin:0, lineHeight:1.6 }}>{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginBottom:24 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--ink-mid)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:14 }}>나이 누적 계수</div>
+          <div style={{ background:'var(--bg-elev-2)', borderRadius:14, padding:'16px', marginBottom:10 }}>
+            <p style={{ fontSize:12, color:'var(--ink-mid)', margin:'0 0 12px 0', lineHeight:1.6 }}>
+              같은 나쁜 습관도 나이에 따라 감점이 달라집니다. 20대의 흡연과 50대의 흡연은 몸에 미치는 누적 영향이 다르기 때문입니다.
+            </p>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+              {[
+                { age:'20대', mul:'×0.6', desc:'누적 전' },
+                { age:'30대', mul:'×0.85', desc:'누적 시작' },
+                { age:'40대', mul:'×1.0', desc:'기준점' },
+                { age:'50대', mul:'×1.3', desc:'누적 가속' },
+                { age:'60대', mul:'×1.6', desc:'위험 구간' },
+                { age:'70대+', mul:'×1.8', desc:'회복 저하' },
+              ].map((item, i) => (
+                <div key={i} style={{
+                  background:'var(--bg-elev-1)', borderRadius:10, padding:'10px',
+                  textAlign:'center', border:'1px solid var(--line)',
+                }}>
+                  <div style={{ fontSize:11, color:'var(--ink-mid)', marginBottom:4 }}>{item.age}</div>
+                  <div style={{ fontFamily:'var(--font-numeric)', fontSize:16, fontWeight:800, color: i < 2 ? 'var(--accent)' : i === 2 ? 'var(--ink-hi)' : '#F87171' }}>{item.mul}</div>
+                  <div style={{ fontSize:10, color:'var(--ink-lo)', marginTop:2 }}>{item.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom:24 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--ink-mid)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:14 }}>회복·관리 가점</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {[
+              { icon:'✅', label:'금연 2년 이상', point:'+10점' },
+              { icon:'✅', label:'금주 2년 이상', point:'+8점' },
+              { icon:'✅', label:'운동 6개월 이상 꾸준히', point:'+7점' },
+              { icon:'✅', label:'안정시 심박수 60bpm 이하', point:'+5점' },
+            ].map((item, i) => (
+              <div key={i} style={{
+                display:'flex', justifyContent:'space-between', alignItems:'center',
+                background:'var(--bg-elev-2)', borderRadius:10, padding:'12px 16px',
+              }}>
+                <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                  <span>{item.icon}</span>
+                  <span style={{ fontSize:13, color:'var(--ink-hi)' }}>{item.label}</span>
+                </div>
+                <span style={{ fontSize:12, fontWeight:700, color:'var(--accent)', background:'rgba(57,255,106,0.1)', padding:'2px 10px', borderRadius:9999 }}>{item.point}</span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize:11, color:'var(--ink-lo)', margin:'10px 0 0 0', lineHeight:1.6 }}>
+            * 회복·관리 가점 합산 최대 +25점. 나이와 무관하게 노력하면 점수가 올라갑니다.
+          </p>
+        </div>
+
+        <div style={{ marginBottom:24 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--ink-mid)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:14 }}>동년배 티어 시스템</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            {[
+              { name:'THE PHiN', label:'최상위 1%',  color:'#FFD700', cond:'건강검진 3회+ 전 수치 정상' },
+              { name:'BLACK',    label:'최상위 5%',  color:'#C0C0C0', cond:'건강검진 1회 이상 등록' },
+              { name:'GREEN',    label:'상위권',     color:'#34D378', cond:'생활습관 입력만으로 달성 가능' },
+              { name:'BLUE',     label:'중상위',     color:'#60A5FA', cond:'' },
+              { name:'YELLOW',   label:'중위',       color:'#FBBF24', cond:'' },
+              { name:'RED',      label:'중하위',     color:'#F87171', cond:'' },
+              { name:'GRAY',     label:'하위권',     color:'#9CA3AF', cond:'' },
+            ].map((t, i) => (
+              <div key={i} style={{
+                display:'flex', alignItems:'center', gap:12,
+                padding:'10px 14px', borderRadius:10,
+                background:'var(--bg-elev-2)', border:`1px solid ${t.color}22`,
+              }}>
+                <div style={{ width:10, height:10, borderRadius:9999, background:t.color, flexShrink:0, boxShadow:`0 0 8px ${t.color}` }} />
+                <span style={{ fontFamily:'var(--font-display)', fontSize:13, fontWeight:800, color:t.color, width:90, flexShrink:0 }}>{t.name}</span>
+                <span style={{ fontSize:12, color:'var(--ink-mid)', width:70, flexShrink:0 }}>{t.label}</span>
+                {t.cond && <span style={{ fontSize:11, color:'var(--ink-lo)' }}>{t.cond}</span>}
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize:11, color:'var(--ink-lo)', margin:'10px 0 0 0', lineHeight:1.6 }}>
+            * 티어는 동년배 기준 상대 위치입니다. 60세가 60대 상위 1%면 THE PHiN — 모든 나이에서 달성 가능합니다.
+          </p>
+        </div>
+
+        <button onClick={onClose} className="phin-btn phin-btn-primary" style={{ width:'100%', padding:'16px' }}>
+          확인했습니다
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Landing({ onStart }) {
+  const [showModal, setShowModal] = React.useState(false);
+
+  return (
+    <div>
+      {showModal && <ScoreInfoModal onClose={() => setShowModal(false)} />}
+
+      <header style={{
+        position:'sticky', top:0, zIndex:10,
+        background:'rgba(11,15,13,0.78)',
+        backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
+        borderBottom:'1px solid var(--line)',
+      }}>
+        <div className="phin-container" style={{ height:64, display:'flex', alignItems:'center', gap:24 }}>
+          <Logo size={22} />
+          <nav className="phin-nav-desktop" style={{ display:'flex', gap:24, marginLeft:32 }}>
+            <a className="phin-body-sm t-mid" style={{ textDecoration:'none', cursor:'pointer', whiteSpace:'nowrap' }}>서비스</a>
+            <a className="phin-body-sm t-mid" style={{ textDecoration:'none', cursor:'pointer', whiteSpace:'nowrap' }}>PHIN스코어</a>
+            <a className="phin-body-sm t-mid" style={{ textDecoration:'none', cursor:'pointer', whiteSpace:'nowrap' }}>티어</a>
+            <a className="phin-body-sm t-mid" style={{ textDecoration:'none', cursor:'pointer', whiteSpace:'nowrap' }}>클럽</a>
+          </nav>
+          <div style={{ flex:1 }} />
+          <a className="phin-body-sm t-mid phin-nav-desktop" style={{ textDecoration:'none', cursor:'pointer', whiteSpace:'nowrap' }}>앱 다운로드</a>
+          <button className="phin-btn phin-btn-primary" onClick={onStart} style={{ padding:'10px 18px', fontSize:14 }}>진단 시작</button>
+        </div>
+      </header>
+
+      <section style={{ paddingTop:96, paddingBottom:64, position:'relative', overflow:'hidden' }}>
+        <div aria-hidden style={{
+          position:'absolute', inset:'auto 0 0 0', height:600,
+          background:'radial-gradient(60% 80% at 50% 100%, rgba(57,255,106,0.10), transparent 70%)',
+          pointerEvents:'none',
+        }} />
+        <div className="phin-container" style={{ position:'relative', textAlign:'center' }}>
+          <div className="phin-badge phin-badge-brand" style={{ marginBottom:32 }}>
+            <span style={{ width:6, height:6, borderRadius:9999, background:'var(--accent)' }} />
+            Salus Omnibus · 모두를 위한 건강
+          </div>
+          <h1 className="phin-hero">
+            당신은 <span style={{ color:'var(--accent)', fontWeight:300 }}>핀</span>인가,
+            <br /><span style={{ color:'var(--ink-mid)' }}>아닌가?</span>
+          </h1>
+          <p className="phin-body-lg t-mid" style={{ marginTop:28, marginLeft:'auto', marginRight:'auto', maxWidth:540 }}>
+            6가지 질문으로 산출되는 PHIN스코어. 당신의 신체나이, 동년배 비교, 그리고 어떤 핀(PHIN) 유형인지 30초 안에 알려드립니다.
+          </p>
+          <div style={{ display:'flex', gap:12, justifyContent:'center', marginTop:40, flexWrap:'wrap' }}>
+            <button className="phin-btn phin-btn-primary" onClick={onStart}>
+              무료 진단 시작하기
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+            <button className="phin-btn phin-btn-secondary" onClick={() => setShowModal(true)}>
+              어떻게 산출되나요?
+            </button>
+          </div>
+          <div style={{ display:'flex', gap:24, justifyContent:'center', marginTop:36, flexWrap:'wrap' }}>
+            <Stat n="30초" label="에 진단 완료" />
+            <Stat n="6단계" label="설문" />
+            <Stat n="16가지" label="성향 유형" />
+            <Stat n="0~100" label="PHIN스코어" />
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding:'64px 0' }}>
+        <div className="phin-container">
+          <div className="phin-micro" style={{ color:'var(--accent)', textAlign:'center', marginBottom:16 }}>PHIN 티어 시스템</div>
+          <h2 className="phin-display-md t-hi" style={{ textAlign:'center', marginBottom:48 }}>7가지 등급, 점수에 따라 달라집니다</h2>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:8 }} className="phin-tier-grid">
+            <TierCard color="#9CA3AF" name="GRAY"   range="하위권" />
+            <TierCard color="#F87171" name="RED"    range="중하위" />
+            <TierCard color="#FBBF24" name="YELLOW" range="중위" />
+            <TierCard color="#60A5FA" name="BLUE"   range="중상위" />
+            <TierCard color="#34D378" name="GREEN"  range="상위권" featured />
+            <TierCard color="#E5E5E5" name="BLACK"  range="최상위 5%" />
+            <TierCard color="#FFD700" name="THE"    range="최상위 1%" />
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding:'64px 0' }}>
+        <div className="phin-container">
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16 }} className="phin-feature-grid">
+            <Feature n="01" title="PHIN스코어" body="6개 영역 종합 점수. 동년배 대비 어디쯤인지 위치로 비교됩니다." />
+            <Feature n="02" title="신체나이" body="실제 나이가 아닌, 생활습관이 만든 진짜 나이. 평균 4~7세 차이가 납니다." />
+            <Feature n="03" title="16가지 성향" body="MBTI 기반 건강 행동 유형. 같은 점수라도 코칭 톤이 달라집니다." />
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding:'96px 0' }}>
+        <div className="phin-container-sm">
+          <div className="phin-card" style={{ textAlign:'center', padding:48, border:'1px solid var(--line-strong)', background:'linear-gradient(180deg, var(--bg-elev-1), var(--bg))' }}>
+            <h3 className="phin-display-md t-hi" style={{ marginBottom:16 }}>너 PHIN 몇 점이야?</h3>
+            <p className="phin-body-lg t-mid" style={{ marginBottom:32 }}>일상 인사가 될 만큼 정확한 건강 지표. 지금 측정해보세요.</p>
+            <button className="phin-btn phin-btn-primary" onClick={onStart}>지금 시작하기 — 30초</button>
+          </div>
+        </div>
+      </section>
+
+      <footer style={{ borderTop:'1px solid var(--line)', padding:'32px 0', marginTop:32 }}>
+        <div className="phin-container" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12 }}>
+          <Logo size={16} />
+          <div className="phin-caption t-lo">© 2026 PHIN · Personal Health INtelligence · blake@phin.health</div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function Stat({ n, label }) {
+  return (
+    <div style={{ display:'inline-flex', alignItems:'baseline', gap:6, padding:'8px 16px', borderRadius:9999, border:'1px solid var(--line)', background:'var(--bg-elev-1)', whiteSpace:'nowrap', flexShrink:0 }}>
+      <span style={{ fontFamily:'var(--font-numeric)', fontWeight:800, fontSize:17, color:'var(--ink-hi)' }}>{n}</span>
+      <span className="phin-body-sm t-mid">{label}</span>
+    </div>
+  );
+}
+
+function TierCard({ color, name, range, featured }) {
+  return (
+    <article className="tier-card" data-featured={featured ? 'true' : 'false'} style={{ ['--tc']: color }}>
+      <span className="tier-card__dot" />
+      <div className="tier-card__body">
+        <div className="tier-card__name">{name}</div>
+        <div className="tier-card__range">{range}</div>
+      </div>
+    </article>
+  );
+}
+
+function Feature({ n, title, body }) {
+  return (
+    <article className="feature-card">
+      <div className="feature-card__n">{n}</div>
+      <div className="feature-card__body">
+        <h3 className="feature-card__title">{title}</h3>
+        <p className="feature-card__desc">{body}</p>
+      </div>
+    </article>
+  );
+}
+</script>
+
+<script type="text/babel">
+
+// ════════════════════════════════════════════════════════
+// Steps.jsx — all 6 survey steps
+// ════════════════════════════════════════════════════════
+function Step1({ answers, setAnswers, onNext, onBack }) {
+  const personality = answers.personality || {};
+  const [mode, setMode] = React.useState(answers.mbtiDirect ? 'know' : 'questions');
+
+  const pick = (qid, side) => {
+    setAnswers({
+      ...answers,
+      personality: { ...personality, [qid]: side },
+      mbtiDirect: null,
+    });
+  };
+
+  const pickMbti = (mbti) => {
+    setAnswers({
+      ...answers,
+      personality: {
+        EI: mbti[0] === 'E' ? 'A' : 'B',
+        SN: mbti[1] === 'S' ? 'A' : 'B',
+        TF: mbti[2] === 'T' ? 'A' : 'B',
+        JP: mbti[3] === 'J' ? 'A' : 'B',
+      },
+      mbtiDirect: mbti,
+    });
+  };
+
+  const switchMode = (m) => {
+    setMode(m);
+    if (m === 'questions') setAnswers({ ...answers, mbtiDirect: null });
+  };
+
+  const done = mode === 'know'
+    ? !!answers.mbtiDirect
+    : ['EI','SN','TF','JP'].every(k => personality[k]);
+
+  return (
+    <StepLayout step={1} total={6} onBack={onBack}
+      action={<ActionBar onNext={onNext} disabled={!done}
+        hint={done ? '' : (mode === 'know' ? '내 MBTI를 골라주세요' : '4개 모두 골라야 다음으로 넘어갈 수 있어요')} />}
+    >
+      <StepHeader eyebrow="STEP 01 · 성향 진단" title="나는 어떤 사람인가?"
+        subtitle="MBTI를 이미 알면 직접 선택하세요. 모르면 4가지 질문으로 알려드릴게요." />
+      <ModeToggle mode={mode} setMode={switchMode} />
+      {mode === 'know' ? (
+        <MbtiGrid value={answers.mbtiDirect} onPick={pickMbti} />
+      ) : (
+        <AbQuestions questions={window.PHIN.personalityQs} personality={personality} pick={pick} />
+      )}
+    </StepLayout>
+  );
+}
+
+function ModeToggle({ mode, setMode }) {
+  const Btn = ({ id, label, sub }) => {
+    const sel = mode === id;
+    return (
+      <button onClick={() => setMode(id)} style={{
+        flex: 1, background: sel ? 'var(--brand-mute)' : 'transparent',
+        border: `1px solid ${sel ? 'var(--accent)' : 'var(--line)'}`,
+        borderRadius: 14, padding: '14px 16px', cursor: 'pointer',
+        textAlign: 'left', color: sel ? 'var(--ink-hi)' : 'var(--ink-mid)',
+        fontFamily: 'var(--font-body)', transition: 'all 220ms var(--ease)',
+      }}>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>{label}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-lo)', marginTop: 2 }}>{sub}</div>
+      </button>
+    );
+  };
+  return (
+    <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
+      <Btn id="know" label="이미 알아요" sub="MBTI 직접 선택" />
+      <Btn id="questions" label="잘 모르겠어요" sub="질문으로 찾기" />
+    </div>
+  );
+}
+
+function MbtiGrid({ value, onPick }) {
+  const types = [
+    'INTJ','INTP','ENTJ','ENTP',
+    'INFJ','INFP','ENFJ','ENFP',
+    'ISTJ','ISFJ','ESTJ','ESFJ',
+    'ISTP','ISFP','ESTP','ESFP',
+  ];
+  return (
+    <div className="phin-mbti-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+      {types.map(t => {
+        const sel = value === t;
+        const dim = !!value && !sel;
+        let cls = 'phin-option';
+        if (sel) cls += ' is-selected';
+        else if (dim) cls += ' is-unselected';
+        return (
+          <button key={t} className={cls} onClick={() => onPick(t)}
+            style={{ padding: '14px 8px', flexDirection: 'column', alignItems: 'center', gap: 4, textAlign: 'center', minHeight: 86 }}>
+            <span style={{ fontFamily: 'var(--font-numeric)', fontWeight: 800, fontSize: 16, letterSpacing: '0.04em', lineHeight: 1 }}>{t}</span>
+            <span style={{ fontSize: 11, fontWeight: 500, color: sel ? 'var(--ink-mid)' : (dim ? 'var(--ink-xlo)' : 'var(--ink-lo)') }}>
+              {window.PHIN.typeNames[t]}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function AbQuestions({ questions, personality, pick }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+      {questions.map((q, i) => {
+        const picked = personality[q.id];
+        return (
+          <div key={q.id}>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontFamily: 'var(--font-numeric)', fontSize: 12, fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.08em', marginBottom: 6 }}>Q{i + 1}</div>
+              <div className="phin-h2 t-hi" style={{ fontWeight: 600, wordBreak: 'keep-all', lineHeight: 1.4 }}>{q.q}</div>
+            </div>
+            <div className="phin-ab-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <ABCard letter="A" label={q.A.label} isSelected={picked === 'A'} isDimmed={picked === 'B'} onClick={() => pick(q.id, 'A')} />
+              <ABCard letter="B" label={q.B.label} isSelected={picked === 'B'} isDimmed={picked === 'A'} onClick={() => pick(q.id, 'B')} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Step2({ answers, setAnswers, onNext, onBack }) {
+  const selected = answers.bodyIssues || [];
+  const toggle = (key) => {
+    if (key === 'none') {
+      const next = selected.includes('none') ? [] : ['none'];
+      setAnswers(prev => ({ ...prev, bodyIssues: next }));
+    } else {
+      const filtered = selected.filter(k => k !== 'none');
+      const next = filtered.includes(key) ? filtered.filter(k => k !== key) : [...filtered, key];
+      setAnswers(prev => ({ ...prev, bodyIssues: next }));
+    }
+  };
+  const hasAny = selected.length > 0;
+  return (
+    <StepLayout step={2} total={6} onBack={onBack}
+      action={<ActionBar onNext={onNext} nextLabel={hasAny ? `${selected.length}개 선택 · 다음` : '해당 없음 · 다음'} />}
+    >
+      <StepHeader eyebrow="STEP 02 · 신체 고민" title="요즘 내 몸에서 가장 나를 괴롭히는 문제는?"
+        subtitle="해당되는 것 모두 골라주세요. 복수 선택 가능." />
+      <MultiGrid items={window.PHIN.bodyIssues} selectedKeys={selected} onToggle={toggle} />
+    </StepLayout>
+  );
+}
+
+function Step3({ answers, setAnswers, onNext, onBack }) {
+  const picked = answers.digital;
+  const pick = (k) => setAnswers({ ...answers, digital: k });
+  return (
+    <StepLayout step={3} total={6} onBack={onBack}
+      action={<ActionBar onNext={onNext} disabled={!picked} />}
+    >
+      <StepHeader eyebrow="STEP 03 · 디지털 습관" title="업무 외 스마트폰 하루 사용시간은?"
+        subtitle="숏폼, 유튜브, SNS 등 포함. 단일 선택." />
+      <SingleList items={window.PHIN.digital} selected={picked} onPick={pick} />
+    </StepLayout>
+  );
+}
+
+function Step4({ answers, setAnswers, onNext, onBack }) {
+  const selected = answers.lifestyle || [];
+  const toggle = (key) => {
+    if (key === 'none') {
+      const next = selected.includes('none') ? [] : ['none'];
+      setAnswers(prev => ({ ...prev, lifestyle: next }));
+    } else {
+      const filtered = selected.filter(k => k !== 'none');
+      const next = filtered.includes(key) ? filtered.filter(k => k !== key) : [...filtered, key];
+      setAnswers(prev => ({ ...prev, lifestyle: next }));
+    }
+  };
+  return (
+    <StepLayout step={4} total={6} onBack={onBack}
+      action={<ActionBar onNext={onNext} nextLabel={selected.length ? `${selected.length}개 선택 · 다음` : '해당 없음 · 다음'} />}
+    >
+      <StepHeader eyebrow="STEP 04 · 생활습관" title="솔직히 해당되는 것 모두 골라주세요"
+        subtitle="많이 골라도 괜찮습니다. 복수 선택 가능." />
+      <MultiGrid items={window.PHIN.lifestyle} selectedKeys={selected} onToggle={toggle} />
+    </StepLayout>
+  );
+}
+
+function Step5({ answers, setAnswers, onNext, onBack }) {
+  const picked = answers.steps;
+  const pick = (k) => setAnswers({ ...answers, steps: k });
+  return (
+    <StepLayout step={5} total={6} onBack={onBack}
+      action={<ActionBar onNext={onNext} disabled={!picked} />}
+    >
+      <StepHeader eyebrow="STEP 05 · 하루 걸음수" title="하루 평균 걸음수는?"
+        subtitle="스마트폰 만보계 기준으로 생각해주세요. 단일 선택." />
+      <SingleList items={window.PHIN.steps} selected={picked} onPick={pick} />
+    </StepLayout>
+  );
+}
+
+function Step6({ answers, setAnswers, onNext, onBack }) {
+  const set = (k, v) => setAnswers(prev => ({ ...prev, [k]: v }));
+
+  React.useEffect(() => {
+    const updates = {};
+    if (answers.ageNum    == null) updates.ageNum    = 35;
+    if (answers.heightNum == null) updates.heightNum = 170;
+    if (answers.weightNum == null) updates.weightNum = 70;
+    if (Object.keys(updates).length > 0) {
+      setAnswers(prev => ({ ...prev, ...updates }));
+    }
+  }, []);
+
+  const gender = answers.gender    || '';
+  const age    = answers.ageNum    ?? 35;
+  const height = answers.heightNum ?? 170;
+  const weight = answers.weightNum ?? 70;
+
+  const bmi = height > 0 ? (weight / Math.pow(height / 100, 2)) : 0;
+
+  const bmiLabel = bmi < 18.5 ? '저체중' : bmi < 23 ? '정상' : bmi < 25 ? '과체중' : bmi < 30 ? '비만' : '고도비만';
+  const bmiColor = bmi < 18.5 ? '#2E86C1' : bmi < 23 ? '#1A5C38' : bmi < 25 ? '#E67E22' : '#C0392B';
+
+  const done = gender && age > 0 && height > 0 && weight > 0;
+
+  return (
+    <StepLayout step={6} total={6} onBack={onBack}
+      action={<ActionBar onNext={onNext} nextLabel="진단 완료 · 결과 보기" disabled={!done}
+        hint={done ? '' : '모든 항목을 입력해주세요'} />}
+    >
+      <StepHeader eyebrow="STEP 06 · 기본 정보" title="마지막으로 기본 정보를 알려주세요"
+        subtitle="앱 연동 시 이 정보가 그대로 사용됩니다." />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+        <div>
+          <div className="phin-h2 t-hi" style={{ marginBottom: 12, fontWeight: 600 }}>성별</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {[['male','남성'],['female','여성']].map(([v, l]) => {
+              const sel = gender === v;
+              return (
+                <button key={v} className={`phin-option${sel ? ' is-selected' : (gender ? ' is-unselected' : '')}`}
+                  onClick={() => set('gender', v)}
+                  style={{ padding: '16px', justifyContent: 'center', fontSize: 15, fontWeight: 600 }}>
+                  {l}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+            <div className="phin-h2 t-hi" style={{ fontWeight: 600 }}>나이</div>
+            <div style={{ fontFamily: 'var(--font-numeric)', fontSize: 28, fontWeight: 800, color: 'var(--accent)' }}>
+              {age}<span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-mid)', marginLeft: 4 }}>세</span>
+            </div>
+          </div>
+          <input type="range" min={15} max={80} value={age}
+            onChange={e => set('ageNum', +e.target.value)}
+            style={{ width: '100%', accentColor: 'var(--accent)', height: 6, cursor: 'pointer' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+            <span className="phin-caption t-lo">15세</span>
+            <span className="phin-caption t-lo">80세</span>
+          </div>
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+            <div className="phin-h2 t-hi" style={{ fontWeight: 600 }}>키</div>
+            <div style={{ fontFamily: 'var(--font-numeric)', fontSize: 28, fontWeight: 800, color: 'var(--accent)' }}>
+              {height}<span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-mid)', marginLeft: 4 }}>cm</span>
+            </div>
+          </div>
+          <input type="range" min={140} max={200} value={height}
+            onChange={e => set('heightNum', +e.target.value)}
+            style={{ width: '100%', accentColor: 'var(--accent)', height: 6, cursor: 'pointer' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+            <span className="phin-caption t-lo">140cm</span>
+            <span className="phin-caption t-lo">200cm</span>
+          </div>
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+            <div className="phin-h2 t-hi" style={{ fontWeight: 600 }}>체중</div>
+            <div style={{ fontFamily: 'var(--font-numeric)', fontSize: 28, fontWeight: 800, color: 'var(--accent)' }}>
+              {weight}<span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-mid)', marginLeft: 4 }}>kg</span>
+            </div>
+          </div>
+          <input type="range" min={35} max={150} value={weight}
+            onChange={e => set('weightNum', +e.target.value)}
+            style={{ width: '100%', accentColor: 'var(--accent)', height: 6, cursor: 'pointer' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+            <span className="phin-caption t-lo">35kg</span>
+            <span className="phin-caption t-lo">150kg</span>
+          </div>
+        </div>
+
+        {height > 0 && weight > 0 && (
+          <div style={{
+            background: `${bmiColor}18`,
+            border: `1px solid ${bmiColor}44`,
+            borderRadius: 14, padding: '14px 18px',
+            display: 'flex', alignItems: 'center', gap: 14,
+          }}>
+            <div style={{ fontFamily: 'var(--font-numeric)', fontSize: 32, fontWeight: 800, color: bmiColor }}>
+              {bmi.toFixed(1)}
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: bmiColor }}>{bmiLabel}</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-lo)', marginTop: 2 }}>
+                {age}세 · {height}cm · {weight}kg
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </StepLayout>
+  );
+}
+
+function MultiGrid({ items, selectedKeys, onToggle }) {
+  const anySelected = selectedKeys.length > 0;
+  return (
+    <div className="phin-multi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+      {items.map(it => {
+        const sel = selectedKeys.includes(it.key);
+        return (
+          <OptionTile key={it.key} icon={it.icon} label={it.label} desc={it.desc}
+            isSelected={sel} isDimmed={anySelected && !sel} onClick={() => onToggle(it.key)} />
+        );
+      })}
+    </div>
+  );
+}
+
+function SingleList({ items, selected, onPick }) {
+  const anySelected = !!selected;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {items.map(it => {
+        const sel = selected === it.key;
+        return (
+          <OptionTile key={it.key} icon={it.icon} label={it.label} desc={it.desc}
+            isSelected={sel} isDimmed={anySelected && !sel} onClick={() => onPick(it.key)} />
+        );
+      })}
+    </div>
+  );
+}
+</script>
+
+<script type="text/babel">
+
+// ════════════════════════════════════════════════════════
+// Result.jsx
+// ════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://ytseevffdonnfxcgfzxe.supabase.co';
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.phin.health';
+function getSupabaseKey() { return window.__PHIN_SUPABASE_KEY__ || ''; }
+
+// 앱이 설치되어 있으면 phin:// 딥링크로 점수를 전달하고, 설치 안 됐으면 Play Store로 이동
+function openAppOrPlayStore(score, tier) {
+  const appUrl = `phin://score?value=${encodeURIComponent(score)}&tier=${encodeURIComponent(tier)}`;
+  let appOpened = false;
+  const onVisibilityChange = () => { if (document.hidden) appOpened = true; };
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  window.location.href = appUrl;
+  setTimeout(() => {
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    if (!appOpened) window.open(PLAY_STORE_URL, '_blank');
+  }, 1200);
+}
+
+window.saveToSupabase = async function saveToSupabase(raw, email) {
+  const SUPABASE_KEY = getSupabaseKey();
+  if (!SUPABASE_KEY) { console.warn("Supabase 키 없음"); return null; }
+  try {
+    const token = crypto.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+      const payload = {
+        email:          email || null,
+        token,
+        transferred:    false,
+        gender:         raw.gender,
+        age:            raw.age,
+        height:         raw.height,
+        weight:         raw.weight,
+        bmi:            raw.bmi,
+        mbti:           raw.mbti,
+        web_phin_score: raw.web_phin_score,
+        web_body_age:   raw.web_body_age,
+        smoking_status: raw.smoking_status || 'none',
+        drinking_status: raw.drinking_status || 'none',
+      };
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/web_sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey':        SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer':        'return=representation',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return token;
+  } catch (e) {
+    console.warn('Supabase 저장 오류 (무시):', e);
+    return null;
+  }
+};
+
+function buildOneLiners(r, answers) {
+  const lines = [];
+  const bd = r.breakdown || {};
+
+  if (bd.smoking > 0) {
+    lines.push(`흡연이 이번 점수에서 가장 큰 영향을 미쳤습니다. 금연을 시작하면 가장 빠르게 점수를 올릴 수 있습니다.`);
+  }
+  if (bd.drinking > 8) {
+    lines.push(`음주 빈도가 높아 간 건강과 수면의 질에 영향을 주고 있습니다. 주 2회 이하로 줄이면 변화가 시작됩니다.`);
+  } else if (bd.drinking > 0) {
+    lines.push(`음주 습관이 점수에 일부 영향을 주고 있습니다. 음주량을 줄이면 점수 개선에 도움이 됩니다.`);
+  }
+  if (bd.exercise > 8) {
+    lines.push(`규칙적인 운동을 시작하면 점수를 빠르게 끌어올릴 수 있습니다. 주 2회, 30분부터 시작해보세요.`);
+  } else if (bd.exercise > 0) {
+    lines.push(`운동 빈도를 주 3회 이상으로 늘리면 점수 상승 여력이 있습니다.`);
+  }
+  if (bd.sleep > 8) {
+    lines.push(`수면 시간이 부족합니다. 하루 7~8시간 수면이 회복과 점수 개선의 핵심입니다.`);
+  } else if (bd.sleep > 0) {
+    lines.push(`수면 시간을 조금 더 확보하면 컨디션과 점수 모두 개선됩니다.`);
+  }
+  if (bd.stress > 6) {
+    lines.push(`스트레스 수준이 높습니다. PHIN 코치의 사색 루틴이 도움이 될 수 있습니다.`);
+  }
+  if (bd.bmi > 4) {
+    lines.push(`체중 관리를 시작하면 심혈관 건강 지표가 함께 개선됩니다.`);
+  }
+  if (bd.bonus > 5) {
+    lines.push(`금연·금주·꾸준한 운동 등 건강 관리 노력이 점수에 긍정적으로 반영됐습니다.`);
+  }
+  if (lines.length === 0) {
+    lines.push(`전반적으로 양호한 생활습관을 유지하고 있습니다. 건강검진 데이터를 추가하면 더 정밀한 분석이 가능합니다.`);
+  }
+
+  return lines;
+}
+
+function Result({ answers, onRestart }) {
+  const r = window.PHIN.score(answers);
+
+  const tierColor = r.tierColor || '#60A5FA';
+  const tierGlow  = tierColor + '33';
+  const displayScore = r.finalScore ?? Math.round(r.totalScore ?? 0);
+  const tierName  = r.tierName || 'BLUE PHiN';
+  const tierLabel = r.tierLabel || '중위';
+  const bodyAge   = r.bodyAge ?? answers.ageNum ?? 30;
+  const realAge   = parseInt(answers.ageNum || answers.age || 30);
+  const mbtiText  = answers.mbtiDirect || answers.mbti || '';
+  const accuracy  = r.accuracyIndex ? Math.round(r.accuracyIndex * 100) : 82;
+  const oneLiners = buildOneLiners(r, answers);
+
+  const [email,      setEmail]      = React.useState('');
+  const [saved,      setSaved]      = React.useState(false);
+  const [saving,     setSaving]     = React.useState(false);
+  const [token,      setToken]      = React.useState(null);
+  const [emailError, setEmailError] = React.useState('');
+
+  React.useEffect(() => {
+    if (window.PHIN._lastRaw && getSupabaseKey()) {
+      window.saveToSupabase(window.PHIN._lastRaw, null).then(t => {
+        if (t) setToken(t);
+      });
+    }
+  }, []);
+
+  const handleEmailSave = async () => {
+    if (!email || saving) return;
+    setEmailError('');
+    setSaving(true);
+    try {
+      const checkRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/user_profiles?email=eq.${encodeURIComponent(email)}&select=id&limit=1`,
+        { headers: { 'apikey': getSupabaseKey(), 'Authorization': 'Bearer ' + getSupabaseKey() } }
+      );
+      const existing = await checkRes.json();
+      if (existing && existing.length > 0) {
+        setEmailError('이미 가입된 이메일입니다. 앱에서 직접 로그인해주세요.');
+        setSaving(false);
+        return;
+      }
+      const t = await window.saveToSupabase(window.PHIN._lastRaw, email);
+      if (t) { setToken(t); setSaved(true); }
+    } catch(e) {
+      setEmailError('오류가 발생했습니다. 다시 시도해주세요.');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ minHeight: '100vh' }}>
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        background: 'rgba(10,15,12,0.8)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--line)',
+      }}>
+        <div className="phin-container" style={{ height:56, display:'flex', alignItems:'center' }}>
+          <Logo size={18} />
+          <div style={{ flex:1 }} />
+          <button onClick={onRestart} className="phin-btn-ghost" style={{
+            background:'transparent', border:0, padding:'8px 10px',
+            color:'var(--ink-mid)', cursor:'pointer',
+            display:'inline-flex', alignItems:'center', gap:6,
+            fontSize:14, fontFamily:'var(--font-body)', whiteSpace:'nowrap',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>
+            </svg>
+            다시 진단
+          </button>
+        </div>
+      </div>
+
+      <main className="phin-container-sm" style={{ paddingTop:64, paddingBottom:96 }}>
+
+        <section style={{ textAlign:'center', position:'relative' }}>
+          <div aria-hidden style={{
+            position:'absolute', inset:'-20% -20% auto -20%', height:500,
+            background:`radial-gradient(50% 60% at 50% 40%, ${tierGlow}, transparent 70%)`,
+            pointerEvents:'none', zIndex:0,
+          }} />
+          <div style={{ position:'relative', zIndex:1 }}>
+            <div className="phin-micro" style={{ color:'var(--ink-mid)', marginBottom:16 }}>YOUR PHIN SCORE</div>
+            <div className="phin-score" style={{ color:tierColor }}>{displayScore}</div>
+            <div className="phin-body t-lo" style={{
+              fontFamily:'var(--font-numeric)', fontWeight:600, letterSpacing:'0.04em',
+            }}>/ 100</div>
+            <div style={{
+              display:'inline-flex', alignItems:'center', gap:12,
+              padding:'12px 24px', borderRadius:9999,
+              background:'var(--bg-elev-1)', border:`1px solid ${tierColor}`, marginTop:32,
+            }}>
+              <span style={{
+                width:12, height:12, borderRadius:9999, background:tierColor,
+                boxShadow:`0 0 16px ${tierColor}`,
+              }} />
+              <span style={{
+                fontFamily:'var(--font-display)', fontSize:18, fontWeight:800,
+                color:'var(--ink-hi)', letterSpacing:'-0.02em', whiteSpace:'nowrap',
+              }}>{tierName}</span>
+            </div>
+
+            <div style={{
+              marginTop:16, display:'inline-flex', alignItems:'center', gap:6,
+              padding:'6px 14px', borderRadius:9999,
+              background:'var(--bg-elev-1)', border:'1px solid var(--line)',
+            }}>
+              <span style={{ fontSize:11, color:'var(--ink-mid)' }}>📊 점수 신뢰도</span>
+              <span style={{ fontSize:13, fontWeight:700, color:'var(--accent)' }}>{accuracy}%</span>
+              <span style={{ fontSize:11, color:'var(--ink-lo)' }}>· 건강검진 추가 시 더 정밀해집니다</span>
+            </div>
+          </div>
+        </section>
+
+        <section style={{ marginTop:64 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }} className="phin-insight-grid">
+            <InsightCard
+              eyebrow="성향 유형"
+              big={mbtiText || '?'}
+              small={mbtiText ? 'MBTI 기반' : '앱에서 설정 가능'}
+            />
+            <InsightCard
+              eyebrow="신체나이"
+              big={`${bodyAge}세`}
+              small={`실제 ${realAge}세 · ${bodyAge - realAge > 0 ? '+' : ''}${bodyAge - realAge}세`}
+              tone={bodyAge > realAge ? 'warn' : 'good'}
+            />
+            <InsightCard
+              eyebrow="동년배 위치"
+              big={tierLabel}
+              small={`${realAge}세 ${answers.gender === 'female' ? '여성' : '남성'} 기준`}
+            />
+          </div>
+        </section>
+
+        <section style={{ marginTop:32 }}>
+          <div className="phin-card">
+            <div className="phin-micro" style={{ color:'var(--accent)', marginBottom:16 }}>1차 분석 리포트</div>
+            <ul style={{ listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:14 }}>
+              {oneLiners.map((line, i) => (
+                <li key={i} style={{ display:'flex', gap:12, alignItems:'flex-start', color:'var(--ink-hi)', fontSize:15, lineHeight:1.55 }}>
+                  <span style={{ flexShrink:0, marginTop:8, width:6, height:6, borderRadius:9999, background:'var(--accent)' }} />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section style={{ marginTop:32 }}>
+          <div className="phin-card">
+            <div className="phin-micro t-mid" style={{ marginBottom:16 }}>티어 사다리</div>
+            <TierLadder currentTier={r.tier} score={displayScore} />
+            <p className="phin-body-sm t-mid" style={{ marginTop:16 }}>
+              맞춤 코칭을 한 달만 따라가면 평균 <b style={{ color:'var(--accent)' }}>2~6포인트</b> 상승.
+              식단을 병행하면 최대 <b style={{ color:'var(--accent)' }}>10포인트</b>까지 올라갑니다.
+            </p>
+          </div>
+        </section>
+
+        <section style={{ marginTop:32 }}>
+          <div className="phin-card" style={{ border:'1px solid var(--line-strong)' }}>
+            <div className="phin-micro" style={{ color:'var(--accent)', marginBottom:12 }}>
+              📱 앱에서 이어서 보기
+            </div>
+            <p className="phin-body-sm t-mid" style={{ marginBottom:16 }}>
+              이메일을 등록하면 앱 설치 후 같은 이메일로 로그인할 때<br />
+              지금 입력한 정보가 <b style={{ color:'var(--ink-hi)' }}>자동으로 채워집니다.</b> 다시 입력할 필요 없어요.
+            </p>
+
+            {saved ? (
+              <div style={{
+                background:'var(--brand-mute)', border:'1px solid var(--accent)',
+                borderRadius:12, padding:'14px 18px',
+                display:'flex', alignItems:'center', gap:10,
+              }}>
+                <span style={{ color:'var(--accent)', fontSize:18 }}>✓</span>
+                <div>
+                  <div style={{ color:'var(--ink-hi)', fontWeight:600, fontSize:14 }}>등록 완료!</div>
+                  <div style={{ color:'var(--ink-mid)', fontSize:12, marginTop:2 }}>
+                    앱 설치 후 <b>{email}</b>로 로그인하면 자동 연결됩니다.
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display:'flex', gap:8 }}>
+                <input
+                  type="email"
+                  placeholder="이메일 주소 입력"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleEmailSave()}
+                  style={{
+                    flex:1, padding:'12px 16px',
+                    background:'var(--bg-elev-2)', border:'1px solid var(--line-strong)',
+                    borderRadius:10, color:'var(--ink-hi)',
+                    fontSize:14, fontFamily:'var(--font-body)', outline:'none',
+                  }}
+                />
+                <button
+                  className="phin-btn phin-btn-primary"
+                  onClick={handleEmailSave}
+                  disabled={!email || saving}
+                  style={{ padding:'12px 20px', fontSize:14, whiteSpace:'nowrap' }}
+                >
+                  {saving ? '저장 중…' : '앱 연결'}
+                </button>
+              </div>
+            )}
+            {emailError && (
+              <div style={{
+                marginTop:8, padding:'10px 14px',
+                background:'rgba(220,38,38,0.15)',
+                border:'1px solid rgba(220,38,38,0.4)',
+                borderRadius:10, color:'#f87171', fontSize:13,
+              }}>
+                ⚠️ {emailError}
+              </div>
+            )}
+            {saved && (
+              <button
+                onClick={() => { setSaved(false); setToken(null); setEmail(''); setEmailError(''); }}
+                style={{
+                  marginTop:8, background:'none', border:'none',
+                  color:'var(--ink-lo)', fontSize:12, cursor:'pointer',
+                  textDecoration:'underline', padding:0,
+                }}
+              >
+                다른 이메일로 다시 연결하기
+              </button>
+            )}
+          </div>
+        </section>
+
+        <section style={{ marginTop:32 }}>
+          <div className="phin-card" style={{
+            position:'relative', overflow:'hidden',
+            border:'1px dashed var(--line-strong)',
+          }}>
+            <div className="phin-micro" style={{ color:'var(--ink-lo)', marginBottom:16 }}>🔒 앱에서만 열람 가능</div>
+            <h3 className="phin-display-sm t-hi" style={{ marginBottom:8 }}>
+              정밀 코칭 리포트 + 매일 맞춤 운동
+            </h3>
+            <p className="phin-body t-mid" style={{ marginBottom:0, maxWidth:480 }}>
+              주간·월간 PHIN스코어 추이, 부위별 신체 대시보드, 매일 다른 맞춤 운동,
+              PHIN 코치와의 1:1 피드백 — 앱 다운로드 시 잠금 해제됩니다.
+            </p>
+            <div style={{
+              position:'absolute', inset:'auto -10% -50% auto', width:280, height:280,
+              background:'radial-gradient(circle, var(--brand-glow), transparent 70%)',
+              pointerEvents:'none',
+            }} />
+          </div>
+        </section>
+
+        <section style={{ marginTop:40, display:'flex', flexDirection:'column', gap:12, alignItems:'stretch' }}>
+          <button className="phin-btn phin-btn-primary" style={{ width:'100%', padding:'18px 24px' }}
+            onClick={() => openAppOrPlayStore(displayScore, r.tier)}>
+            앱 다운로드하고 전체 리포트 보기
+          </button>
+          <button className="phin-btn phin-btn-secondary" style={{ width:'100%' }}
+            onClick={() => {
+              const text = `내 PHIN스코어는 ${displayScore}점 (${tierName})! 신체나이 ${bodyAge}세. 너는 몇 점이야? phin.health`;
+              if (navigator.share) navigator.share({ text });
+              else { navigator.clipboard.writeText(text); alert('클립보드에 복사됐어요!'); }
+            }}>
+            결과 공유하기 — 친구 점수와 비교
+          </button>
+          <div className="phin-caption t-lo" style={{ textAlign:'center', marginTop:8 }}>
+            카카오 · 인스타 공유로 친구 PHIN스코어와 비교해보세요
+          </div>
+        </section>
+
+      </main>
+    </div>
+  );
+}
+
+function InsightCard({ eyebrow, big, small, tone }) {
+  const color = tone === 'good' ? 'var(--accent)' : tone === 'warn' ? 'var(--tier-yellow)' : 'var(--ink-hi)';
+  return (
+    <div className="phin-card" style={{ display:'flex', flexDirection:'column', gap:6, minHeight:140 }}>
+      <div className="phin-micro t-lo">{eyebrow}</div>
+      <div style={{
+        fontFamily:'var(--font-display)', fontWeight:800,
+        fontSize:28, letterSpacing:'-0.02em', color, lineHeight:1.1, marginTop:8,
+      }}>{big}</div>
+      <div className="phin-body-sm t-mid" style={{ marginTop:4 }}>{small}</div>
+    </div>
+  );
+}
+
+function TierLadder({ currentTier, score }) {
+  const tiers = [
+    { key:'GRAY',     name:'GRAY',  color:'#9CA3AF', label:'하위권'   },
+    { key:'RED',      name:'RED',   color:'#F87171', label:'중하위'   },
+    { key:'YELLOW',   name:'YELLOW',color:'#FBBF24', label:'중위'     },
+    { key:'BLUE',     name:'BLUE',  color:'#60A5FA', label:'중상위'   },
+    { key:'GREEN',    name:'GREEN', color:'#34D378', label:'상위권'   },
+    { key:'BLACK',    name:'BLACK', color:'#E5E5E5', label:'최상위 5%'},
+    { key:'THE_PHIN', name:'THE',   color:'#FFD700', label:'최상위 1%'},
+  ];
+  return (
+    <div style={{ display:'flex', gap:4, flexWrap:'wrap' }} className="phin-ladder">
+      {tiers.map(t => {
+        const active = t.key === currentTier;
+        return (
+          <div key={t.key} style={{
+            flex:'1 1 12%', minWidth:40, borderRadius:10,
+            border: active ? `1px solid ${t.color}` : '1px solid var(--line)',
+            background: active ? `${t.color}18` : 'transparent',
+            padding:'10px 8px', display:'flex', flexDirection:'column', gap:4,
+            opacity: active ? 1 : 0.5,
+            transition:'opacity 220ms',
+          }}>
+            <div style={{
+              width:8, height:8, borderRadius:9999, background:t.color,
+              boxShadow: active ? `0 0 10px ${t.color}` : 'none',
+            }} />
+            <div style={{
+              fontFamily:'var(--font-display)', fontSize:10, fontWeight:800,
+              color: active ? 'var(--ink-hi)' : 'var(--ink-mid)',
+            }}>{t.name}</div>
+            <div style={{ fontSize:9, color:'var(--ink-lo)' }}>{t.label}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+</script>
+
+<script type="text/babel">
+
+// ════════════════════════════════════════════════════════
+// App — 화면 라우팅 + localStorage 영속화 (Tweaks 패널 제외, 운영용)
+// ════════════════════════════════════════════════════════
+const SCREENS = ['landing', 's1', 's2', 's3', 's4', 's5', 's6', 'result'];
+
+function App() {
+  const [screen, setScreen] = React.useState('landing');
+  const [answers, setAnswers] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem('phin_answers')) || {}; }
+    catch (e) { return {}; }
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('phin_answers', JSON.stringify(answers));
+  }, [answers]);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('phin_screen');
+    if (saved && SCREENS.includes(saved)) setScreen(saved);
+  }, []);
+  React.useEffect(() => {
+    localStorage.setItem('phin_screen', screen);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [screen]);
+
+  const go = (s) => setScreen(s);
+  const restart = () => { setAnswers({}); go('landing'); };
+
+  let body;
+  switch (screen) {
+    case 'landing': body = <Landing onStart={() => go('s1')} />; break;
+    case 's1': body = <Step1 answers={answers} setAnswers={setAnswers} onBack={() => go('landing')} onNext={() => go('s2')} />; break;
+    case 's2': body = <Step2 answers={answers} setAnswers={setAnswers} onBack={() => go('s1')} onNext={() => go('s3')} />; break;
+    case 's3': body = <Step3 answers={answers} setAnswers={setAnswers} onBack={() => go('s2')} onNext={() => go('s4')} />; break;
+    case 's4': body = <Step4 answers={answers} setAnswers={setAnswers} onBack={() => go('s3')} onNext={() => go('s5')} />; break;
+    case 's5': body = <Step5 answers={answers} setAnswers={setAnswers} onBack={() => go('s4')} onNext={() => go('s6')} />; break;
+    case 's6': body = <Step6 answers={answers} setAnswers={setAnswers} onBack={() => go('s5')} onNext={() => go('result')} />; break;
+    case 'result': {
+      const fullAnswers = (() => {
+        try {
+          const saved = JSON.parse(localStorage.getItem('phin_answers')) || {};
+          return { ...saved, ...answers };
+        }
+        catch(e) { return answers; }
+      })();
+      body = <Result answers={fullAnswers} onRestart={restart} />;
+      break;
+    }
+    default: body = <Landing onStart={() => go('s1')} />;
+  }
+
+  return <div key={screen} data-screen-label={screen}>{body}</div>;
+}
+
+function tryMount() {
+  if (!document.getElementById('phin-root')) {
+    setTimeout(tryMount, 50);
+    return;
+  }
+  const root = ReactDOM.createRoot(document.getElementById('phin-root'));
+  root.render(<App />);
+}
+tryMount();
+</script>

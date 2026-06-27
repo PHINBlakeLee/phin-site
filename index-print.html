@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0f0c">
+  <title>PHiN — Print</title>
+  <link rel="stylesheet" href="colors_and_type.css">
+  <style>
+    /* Force dark backgrounds + light text to print */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    body { background: var(--bg); color: var(--ink-hi); margin: 0; }
+    #root { min-height: 100vh; }
+
+    .print-page {
+      break-after: page;
+      page-break-after: always;
+      break-inside: avoid;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .print-page:last-child {
+      break-after: auto;
+      page-break-after: auto;
+    }
+
+    /* Disable sticky elements — they break paged layout */
+    .print-page header,
+    .print-page nav,
+    .print-page [style*="position: sticky"],
+    .print-page [style*="position:sticky"] {
+      position: static !important;
+      top: auto !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    /* Disable bottom-fixed action bars */
+    .print-page [style*="position:fixed"],
+    .print-page [style*="position: fixed"] {
+      position: static !important;
+    }
+
+    /* Re-style action bar's "sticky bottom" so it sits inline */
+    .print-page main + div[style*="background: linear-gradient"] {
+      position: static !important;
+    }
+
+    /* Constrain each screen to a printable size */
+    .print-page > div { min-height: auto; }
+
+    @page {
+      size: 1280px 1600px;
+      margin: 0;
+    }
+
+    @media print {
+      html, body { background: #0a0f0c !important; }
+      .print-page {
+        width: 1280px;
+        height: 1600px;
+        page-break-after: always;
+        overflow: hidden;
+      }
+      .print-page:last-child { page-break-after: auto; }
+    }
+
+    /* On-screen (preview) — show as a stack */
+    @media screen {
+      .print-page {
+        width: 1280px;
+        margin: 0 auto 24px;
+        border-bottom: 4px dashed #2a3631;
+      }
+      body { padding: 24px 0; }
+    }
+
+    /* Page label printed top-right for context */
+    .print-label {
+      position: absolute;
+      top: 12px; right: 16px;
+      font: 600 10px 'Inter', sans-serif;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-lo);
+      z-index: 100;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script src="src/scoring.js"></script>
+  <script type="text/babel" src="src/Shared.jsx"></script>
+  <script type="text/babel" src="src/Landing.jsx"></script>
+  <script type="text/babel" src="src/Steps.jsx"></script>
+  <script type="text/babel" src="src/Result.jsx"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    // Pre-filled answers so all screens show realistic content.
+    const FIXTURE = {
+      personality: { EI: 'B', SN: 'A', TF: 'A', JP: 'B' },
+      bodyIssues:  ['fat', 'sleep', 'fatigue'],
+      digital:     'high',
+      lifestyle:   ['drink', 'lateeat', 'coffee'],
+      steps:       'low',
+      gender:      '남성',
+      age:         '40대 초반',
+      height:      '170~180',
+      weight:      '80~90kg',
+    };
+
+    function PrintAll() {
+      const [answers, setAnswers] = React.useState(FIXTURE);
+      const noop = () => {};
+
+      // Build progressive answer states so each step shows answered-up-to-here
+      const a0 = {};
+      const a1 = { personality: FIXTURE.personality };
+      const a2 = { ...a1, bodyIssues: FIXTURE.bodyIssues };
+      const a3 = { ...a2, digital: FIXTURE.digital };
+      const a4 = { ...a3, lifestyle: FIXTURE.lifestyle };
+      const a5 = { ...a4, steps: FIXTURE.steps };
+      const a6 = { ...a5, gender: FIXTURE.gender, age: FIXTURE.age, height: FIXTURE.height, weight: FIXTURE.weight };
+
+      const pages = [
+        { label: '01 / 08 · Landing', node: <Landing onStart={noop} /> },
+        { label: '02 / 08 · Step 1 · 성향 진단',  node: <Step1 answers={a1} setAnswers={noop} onBack={noop} onNext={noop} /> },
+        { label: '03 / 08 · Step 2 · 신체 고민',  node: <Step2 answers={a2} setAnswers={noop} onBack={noop} onNext={noop} /> },
+        { label: '04 / 08 · Step 3 · 디지털 습관', node: <Step3 answers={a3} setAnswers={noop} onBack={noop} onNext={noop} /> },
+        { label: '05 / 08 · Step 4 · 생활습관',    node: <Step4 answers={a4} setAnswers={noop} onBack={noop} onNext={noop} /> },
+        { label: '06 / 08 · Step 5 · 걸음수',      node: <Step5 answers={a5} setAnswers={noop} onBack={noop} onNext={noop} /> },
+        { label: '07 / 08 · Step 6 · 기본 정보',   node: <Step6 answers={a6} setAnswers={noop} onBack={noop} onNext={noop} /> },
+        { label: '08 / 08 · Result',              node: <Result answers={a6} onRestart={noop} /> },
+      ];
+
+      return (
+        <React.Fragment>
+          {pages.map((p, i) => (
+            <div key={i} className="print-page" data-screen-label={p.label}>
+              <div className="print-label">{p.label}</div>
+              {p.node}
+            </div>
+          ))}
+        </React.Fragment>
+      );
+    }
+
+    function tryMount() {
+      if (!window.Landing || !window.Step1 || !window.Result) {
+        setTimeout(tryMount, 50);
+        return;
+      }
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<PrintAll />);
+
+      // Auto-print after fonts + a small settling delay
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+          setTimeout(() => window.print(), 600);
+        });
+      } else {
+        setTimeout(() => window.print(), 1200);
+      }
+    }
+    tryMount();
+  </script>
+</body>
+</html>

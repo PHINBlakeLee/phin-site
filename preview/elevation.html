@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- @dsCard group="Spacing" name="Elevation (다크모드)" subtitle="Lvl 0 Canvas → Lvl 1 Card → Lvl 2 Hover — 그림자 없이 톤 + hairline" viewport="700x200" --><html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 18px; }
+  .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .lvl { padding: 14px; border-radius: 16px; min-height: 130px; display: flex; flex-direction: column; justify-content: space-between; }
+  .name { font-weight: 700; font-size: 13px; color: var(--ink-hi); }
+  .desc { font-size: 11px; color: var(--ink-mid); margin-top: 4px; }
+  .tile { height: 50px; border-radius: 10px; }
+</style></head><body>
+<div class="row">
+  <div class="lvl" style="background:#0a0f0c; border:1px solid var(--line);">
+    <div class="tile" style="background:#0a0f0c; border:1px solid var(--line);"></div>
+    <div><div class="name">Lvl 0 · Canvas</div><div class="desc">Flat. No border, no elevation.</div></div>
+  </div>
+  <div class="lvl" style="background:#121814; border:1px solid var(--line);">
+    <div class="tile" style="background:#121814; border:1px solid var(--line);"></div>
+    <div><div class="name">Lvl 1 · Card</div><div class="desc">Tonal step + 1px hairline.</div></div>
+  </div>
+  <div class="lvl" style="background:#1a221d; border:1px solid #2a3631;">
+    <div class="tile" style="background:#1a221d; border:1px solid #2a3631;"></div>
+    <div><div class="name">Lvl 2 · Hover</div><div class="desc">Brighter fill + stronger line.</div></div>
+  </div>
+</div>
+</body></html>

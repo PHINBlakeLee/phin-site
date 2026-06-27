@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- @dsCard group="Colors" name="Brand color · 포레스트 그린 + 인터랙션" subtitle="#054d28 브랜드 + #39ff6a 액센트 · 설문 선택 인터랙션 예시" viewport="700x280" --><html><head><meta charset="utf-8"><link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { padding: 18px; }
+  .row { display: grid; grid-template-columns: 1.05fr 1.2fr; gap: 14px; }
+  .sw { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg-elev-1); border: 1px solid var(--line); border-radius: 12px; }
+  .chip { width: 56px; height: 40px; border-radius: 8px; }
+  .name { font-weight: 600; font-size: 13px; }
+  .role { font-size: 11px; color: var(--ink-mid); margin-top: 2px; }
+  .hex { font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink-mid); }
+  .swatches { display: flex; flex-direction: column; gap: 10px; }
+  .demo { background: var(--bg-elev-1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .demo-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-lo); font-weight: 600; }
+  .q { font-size: 13px; color: var(--ink-hi); font-weight: 500; margin-bottom: 2px; }
+  .opt { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; }
+  .dot { width: 14px; height: 14px; border-radius: 9999px; border: 1.5px solid var(--ink-lo); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .opt.selected { background: var(--brand-mute); border-color: var(--brand-bright); color: var(--ink-hi); font-weight: 600; }
+  .opt.selected .dot { border-color: var(--brand-bright); background: var(--brand-bright); }
+  .opt.selected .dot::after { content: ''; width: 5px; height: 5px; border-radius: 9999px; background: #03210f; }
+  .opt.unselected { color: var(--ink-lo); }
+</style></head><body>
+<div class="row">
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#054d28"></div><div><div class="name">Brand</div><div class="role">primary · selected fill</div></div><div class="hex">#054d28</div></div>
+    <div class="sw"><div class="chip" style="background:#39ff6a"></div><div><div class="name">Brand Bright</div><div class="role">highlight · score accent</div></div><div class="hex">#39ff6a</div></div>
+    <div class="sw"><div class="chip" style="background:#1c2a23"></div><div><div class="name">Brand Mute</div><div class="role">selected option bg</div></div><div class="hex">#1c2a23</div></div>
+    <div class="sw"><div class="chip" style="background:#0a7a40"></div><div><div class="name">Brand Strong</div><div class="role">hover step</div></div><div class="hex">#0a7a40</div></div>
+  </div>
+  <div class="demo">
+    <div class="demo-label">Interaction · survey example</div>
+    <div class="q">하루 평균 걸음수는?</div>
+    <div class="opt selected"><span class="dot"></span><span>의식적으로 걷거나 산책</span></div>
+    <div class="opt unselected"><span class="dot"></span><span>출퇴근 시 적당히 이동</span></div>
+    <div class="opt unselected"><span class="dot"></span><span>침대-자동차-책상 고정형</span></div>
+    <div style="font-size:11px;color:var(--ink-lo);margin-top:4px;line-height:1.5">
+      Selected → text brightens to <b style="color:#fff">#ffffff</b><br>
+      Unselected → text dims to <b style="color:#5b6661">#5b6661</b>
+    </div>
+  </div>
+</div>
+</body></html>
