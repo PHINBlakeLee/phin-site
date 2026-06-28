@@ -253,7 +253,7 @@ function Landing({ onStart }) {
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16 }} className="phin-feature-grid">
             <Feature n="01" title="PHIN스코어" body="6개 영역 종합 점수. 동년배 대비 어디쯤인지 위치로 비교됩니다." />
             <Feature n="02" title="신체나이" body="실제 나이가 아닌, 생활습관이 만든 진짜 나이. 평균 4~7세 차이가 납니다." />
-            <Feature n="03" title="16가지 성향" body="MBTI 기반 건강 행동 유형. 같은 점수라도 코칭 톤이 달라집니다." />
+            <Feature n="03" title="16가지 성향" body="16가지 성향 기반 건강 행동 유형. 같은 점수라도 코칭 톤이 달라집니다." />
           </div>
         </div>
       </section>

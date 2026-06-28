@@ -38,10 +38,10 @@ function Step1({ answers, setAnswers, onNext, onBack }) {
   return (
     <StepLayout step={1} total={6} onBack={onBack}
       action={<ActionBar onNext={onNext} disabled={!done}
-        hint={done ? '' : (mode === 'know' ? '내 MBTI를 골라주세요' : '4개 모두 골라야 다음으로 넘어갈 수 있어요')} />}
+        hint={done ? '' : (mode === 'know' ? '내 16가지 성향을 골라주세요' : '4개 모두 골라야 다음으로 넘어갈 수 있어요')} />}
     >
       <StepHeader eyebrow="STEP 01 · 성향 진단" title="나는 어떤 사람인가?"
-        subtitle="MBTI를 이미 알면 직접 선택하세요. 모르면 4가지 질문으로 알려드릴게요." />
+        subtitle="16가지 성향을 이미 알면 직접 선택하세요. 모르면 4가지 질문으로 알려드릴게요." />
       <ModeToggle mode={mode} setMode={switchMode} />
       {mode === 'know' ? (
         <MbtiGrid value={answers.mbtiDirect} onPick={pickMbti} />
@@ -70,7 +70,7 @@ function ModeToggle({ mode, setMode }) {
   };
   return (
     <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
-      <Btn id="know" label="이미 알아요" sub="MBTI 직접 선택" />
+      <Btn id="know" label="이미 알아요" sub="16가지 성향 직접 선택" />
       <Btn id="questions" label="잘 모르겠어요" sub="질문으로 찾기" />
     </div>
   );

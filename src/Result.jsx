@@ -246,7 +246,7 @@ function Result({ answers, onRestart }) {
             <InsightCard
               eyebrow="성향 유형"
               big={mbtiText || '?'}
-              small={mbtiText ? 'MBTI 기반' : '앱에서 설정 가능'}
+              small={mbtiText ? '16가지 성향 기반' : '앱에서 설정 가능'}
             />
             <InsightCard
               eyebrow="신체나이"
