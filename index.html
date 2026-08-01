@@ -4,6 +4,119 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a0f0c">
+
+  <!-- SEO 기본 메타 -->
+  <meta name="description" content="PHIN스코어로 알아보는 나의 건강 등급. 생활습관·생체·심리 데이터를 0~100점으로 환산해 동년배와 비교하고 맞춤 건강 코칭을 받으세요. 30초 무료 진단.">
+  <meta name="keywords" content="PHIN, 핀, 건강점수, 건강나이, 신체나이, 동년배비교, 건강관리앱, 헬스케어AI, PHIN스코어, 건강등급">
+  <meta name="author" content="PHIN — Personal Health INtelligence">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://phin.health/">
+
+  <!-- Open Graph (카카오·페이스북 공유 썸네일) -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://phin.health/">
+  <meta property="og:title" content="PHIN — 당신은 핀인가, 아닌가?">
+  <meta property="og:description" content="30초 진단으로 나의 PHIN스코어와 신체나이, 동년배 건강 순위를 확인하세요.">
+  <meta property="og:image" content="https://phin.health/uploads/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:site_name" content="PHIN">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="PHIN — 당신은 핀인가, 아닌가?">
+  <meta name="twitter:description" content="30초 진단으로 나의 PHIN스코어와 신체나이, 동년배 건강 순위를 확인하세요.">
+  <meta name="twitter:image" content="https://phin.health/uploads/og-image.png">
+
+  <!-- JSON-LD 구조화 데이터 (구글 AEO / 리치결과) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://phin.health/#website",
+        "url": "https://phin.health/",
+        "name": "PHIN",
+        "description": "생활습관·생체·심리·경제 데이터를 0~100점 PHIN스코어로 환산하는 초개인화 헬스케어 AI",
+        "inLanguage": "ko-KR",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://phin.health/?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://phin.health/#organization",
+        "name": "PHIN",
+        "url": "https://phin.health/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://phin.health/uploads/og-image.png"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "email": "blake@phin.health",
+          "contactType": "customer support",
+          "availableLanguage": "Korean"
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://phin.health/#app",
+        "name": "PHIN — Personal Health INtelligence",
+        "description": "생활습관·생체·심리·경제 데이터를 0~100점 PHIN스코어로 환산하고, 동년배 비교·맞춤 운동·AI 코칭을 제공하는 헬스케어 앱",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "Android",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "KRW"
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "5",
+          "ratingCount": "1"
+        },
+        "url": "https://phin.health/",
+        "inLanguage": "ko-KR"
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://phin.health/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "PHIN스코어란 무엇인가요?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "생활습관·생체지표·심리성향·경제지수를 종합해 0~100점으로 산출하는 개인 건강점수입니다. 동년배와 비교해 내 건강 위치를 확인할 수 있습니다."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "무료로 사용할 수 있나요?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "기본 PHIN스코어 진단과 티어 확인은 무료입니다. AI 코칭·심화 리포트 등 프리미엄 기능은 구독으로 제공됩니다."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "어떤 기기에서 사용할 수 있나요?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "현재 Android 앱으로 제공됩니다. Galaxy Watch 연동을 지원하며 iOS 버전은 준비 중입니다."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <title>PHiN — 당신은 핀인가, 아닌가?</title>
   <link rel="stylesheet" href="colors_and_type.css">
   <style>

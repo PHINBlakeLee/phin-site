@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /lib/
+Disallow: /src/
+Disallow: /squarespace/
+Disallow: /preview/
+
+Sitemap: https://phin.health/sitemap.xml
