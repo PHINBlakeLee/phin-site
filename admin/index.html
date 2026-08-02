@@ -176,6 +176,18 @@
   }
   #toast.show { opacity: 1; }
 
+  /* 자가진단 프리뷰 — 앱 UI 재현 */
+  .preview-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .preview-header .organ-icon { width: 44px; height: 44px; background: var(--surface2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .preview-header h2 { font-size: 20px; font-weight: 700; }
+  .preview-header .badge-check { background: rgba(108,99,255,.2); color: var(--accent2); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-left: auto; }
+  .sc-item-card { background: var(--surface2); border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .sc-item-card .q-text { font-size: 13px; line-height: 1.65; margin-bottom: 12px; color: var(--text); }
+  .sc-item-card .q-text::before { content: '● '; color: var(--accent2); }
+  .sc-item-card .q-guide { font-size: 11px; color: var(--muted); line-height: 1.55; margin-bottom: 10px; }
+  .sc-btn-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .sc-btn-row button { padding: 10px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; font-weight: 500; cursor: default; }
+
   .loading { color: var(--muted); font-size: 13px; padding: 24px; text-align: center; }
   .empty { color: var(--muted); font-size: 13px; padding: 32px; text-align: center; }
   .text-clamp { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -346,10 +358,10 @@
         <div class="card-header"><h3 id="sc-count-label">전체</h3></div>
         <table>
           <thead><tr>
-            <th>#</th><th>마커</th><th>성별</th><th>나이</th><th>문항</th>
+            <th>#</th><th>마커</th><th>한글명</th><th>성별</th><th>나이</th><th>문항</th>
             <th>색반영</th><th>순서</th><th>액션</th>
           </tr></thead>
-          <tbody id="sc-tbody"><tr><td colspan="8" class="loading">로딩 중...</td></tr></tbody>
+          <tbody id="sc-tbody"><tr><td colspan="9" class="loading">로딩 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -579,6 +591,16 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-selfcheck')">취소</button>
       <button class="btn btn-accent" onclick="saveSelfCheck()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 자가진단 마커 프리뷰 모달 -->
+<div class="modal-overlay" id="modal-sc-preview">
+  <div class="modal" style="width:400px;max-width:95vw">
+    <div id="sc-preview-content"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-sc-preview')">닫기</button>
     </div>
   </div>
 </div>
@@ -926,6 +948,19 @@ async function deleteDiet(id) {
 }
 
 // ===== ④ 자가진단 =====
+const MARKER_KO = {
+  scalp:'두피·모발', brain:'뇌·정신', eye:'눈', ear:'귀', teeth:'치아·구강',
+  thyroid:'갑상선', lung:'폐·호흡기', heart:'심장', breast:'유방',
+  liver:'간·담', stomach:'위', pancreas:'췌장·대사', kidney:'신장·비뇨',
+  colon:'대장·장', genital:'생식기', spine:'척추', joint:'관절·뼈'
+};
+const MARKER_ICON = {
+  scalp:'💇', brain:'🧠', eye:'👁️', ear:'👂', teeth:'🦷',
+  thyroid:'🫀', lung:'🫁', heart:'❤️', breast:'🩺',
+  liver:'🫀', stomach:'🫃', pancreas:'🩺', kidney:'🫘',
+  colon:'🩺', genital:'🩺', spine:'🦴', joint:'🦵'
+};
+
 async function loadSelfCheck() {
   const marker = document.getElementById('sc-filter-marker').value;
   const sex = document.getElementById('sc-filter-sex').value;
@@ -936,7 +971,7 @@ async function loadSelfCheck() {
   const tbody = document.getElementById('sc-tbody');
   if (error || !data?.length) {
     document.getElementById('sc-count-label').textContent = '전체 0건';
-    tbody.innerHTML = `<tr><td colspan="8" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
   }
   document.getElementById('sc-count-label').textContent = `전체 ${data.length}건`;
   const sexLabel = { any: '공통', male: '남성', female: '여성' };
@@ -944,6 +979,7 @@ async function loadSelfCheck() {
     <tr>
       <td class="text-muted">${i + 1}</td>
       <td><span class="badge badge-purple">${d.marker||'-'}</span></td>
+      <td>${MARKER_KO[d.marker]||d.marker||'-'}</td>
       <td><span class="badge badge-gray">${sexLabel[d.sex]||d.sex||'-'}</span></td>
       <td class="text-muted">${d.age_min??'-'}~${d.age_max??'-'}세</td>
       <td class="text-clamp">${d.question||'-'}</td>
@@ -951,12 +987,43 @@ async function loadSelfCheck() {
       <td class="text-muted">${d.sort_order??'-'}</td>
       <td>
         <div class="flex-gap">
+          <button class="btn btn-sm btn-accent2" onclick="previewMarker('${d.marker}')">미리보기</button>
           <button class="btn btn-sm btn-ghost" onclick="editSelfCheck(${d.id})">수정</button>
           <button class="btn btn-sm btn-danger" onclick="deleteSelfCheck(${d.id})">삭제</button>
         </div>
       </td>
     </tr>
   `).join('');
+}
+
+async function previewMarker(marker) {
+  const { data, error } = await sb.from('self_check_items').select('*').eq('marker', marker).order('sort_order');
+  if (error || !data?.length) { toast('문항 없음'); return; }
+  const koName = MARKER_KO[marker] || marker;
+  const icon = MARKER_ICON[marker] || '🩺';
+  const itemsHtml = data.map(d => `
+    <div class="sc-item-card">
+      <div class="q-text">${d.question||''}</div>
+      ${d.guide ? `<div class="q-guide">${d.guide}</div>` : ''}
+      <div class="sc-btn-row">
+        <button>없음</button>
+        <button>조금</button>
+        <button>많이</button>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('sc-preview-content').innerHTML = `
+    <div class="preview-header">
+      <div class="organ-icon">${icon}</div>
+      <h2>${koName}</h2>
+      <span class="badge-check">자가 체크</span>
+    </div>
+    ${itemsHtml}
+    <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:4px">
+      ※ 이 화면은 개발자 미리보기입니다. 실제 앱과 동일한 문항 구성을 확인하세요.
+    </div>
+  `;
+  openModal('modal-sc-preview');
 }
 
 function openSelfCheckModal(d = null) {
