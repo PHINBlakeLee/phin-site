@@ -714,18 +714,19 @@ function statusNextBtn(id, current) {
   return `<span class="text-muted" style="font-size:11px">완료됨</span>`;
 }
 async function quickStatus(id, status) {
+  let updatePayload = { status, updated_at: new Date().toISOString() };
   if (status === 'done') {
     const reply = window.prompt('완료 답변을 입력하세요 (앱 게시판에 표시됩니다):', '');
-    if (reply === null || reply.trim() === '') return;
-    const { error } = await sb.from('feedback').update({ status: 'done', admin_reply: reply.trim(), updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) { toast('변경 실패'); return; }
-    toast('완료 처리 ✓');
-    loadFeedback();
-    return;
+    if (reply === null) return; // 취소
+    if (reply.trim()) updatePayload.admin_reply = reply.trim();
   }
-  const { error } = await sb.from('feedback').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
-  if (error) { toast('변경 실패'); return; }
-  toast('진행중으로 변경 ✓');
+  const { error } = await sb.from('feedback').update(updatePayload).eq('id', id);
+  if (error) { 
+    toast('저장 실패: ' + (error.message || error.code || JSON.stringify(error)), 4000); 
+    console.error('quickStatus error:', error);
+    return; 
+  }
+  toast(status === 'reviewing' ? '진행중으로 변경 ✓' : '완료 처리 ✓');
   loadFeedback();
 }
 function catBadge(c) {
@@ -798,7 +799,11 @@ async function saveFeedback() {
   const reply = document.getElementById('fb-reply-text').value.trim();
   const status = document.getElementById('fb-status-select').value;
   const { error } = await sb.from('feedback').update({ admin_reply: reply || null, status, updated_at: new Date().toISOString() }).eq('id', currentFeedbackId);
-  if (error) { toast('저장 실패'); return; }
+  if (error) { 
+    toast('저장 실패: ' + (error.message || error.code || JSON.stringify(error)), 4000);
+    console.error('saveFeedback error:', error);
+    return; 
+  }
   toast('저장 완료 ✓');
   closeModal('modal-feedback');
   loadFeedback();
