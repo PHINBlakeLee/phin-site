@@ -714,9 +714,18 @@ function statusNextBtn(id, current) {
   return `<span class="text-muted" style="font-size:11px">완료됨</span>`;
 }
 async function quickStatus(id, status) {
+  if (status === 'done') {
+    const reply = window.prompt('완료 답변을 입력하세요 (앱 게시판에 표시됩니다):', '');
+    if (reply === null || reply.trim() === '') return;
+    const { error } = await sb.from('feedback').update({ status: 'done', admin_reply: reply.trim(), updated_at: new Date().toISOString() }).eq('id', id);
+    if (error) { toast('변경 실패'); return; }
+    toast('완료 처리 ✓');
+    loadFeedback();
+    return;
+  }
   const { error } = await sb.from('feedback').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
   if (error) { toast('변경 실패'); return; }
-  toast(status === 'reviewing' ? '진행중으로 변경 ✓' : '완료 처리 ✓');
+  toast('진행중으로 변경 ✓');
   loadFeedback();
 }
 function catBadge(c) {
