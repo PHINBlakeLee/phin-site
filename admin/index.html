@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHIN Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e2230;
+    --border: #2a2f3d;
+    --accent: #00c896;
+    --accent2: #6c63ff;
+    --danger: #ff4f4f;
+    --warn: #f5a623;
+    --text: #e8eaf0;
+    --muted: #7a8099;
+    --radius: 10px;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 14px; min-height: 100vh; }
+
+  /* LOGIN */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; flex-direction: column; gap: 8px;
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 40px; width: 360px;
+  }
+  .login-box h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .login-box p { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+  .login-box input {
+    width: 100%; padding: 11px 14px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 14px; margin-bottom: 12px; outline: none;
+  }
+  .login-box input:focus { border-color: var(--accent); }
+  .btn-primary {
+    width: 100%; padding: 12px; background: var(--accent); border: none;
+    border-radius: 8px; color: #000; font-weight: 700; font-size: 14px;
+    cursor: pointer; transition: opacity .15s;
+  }
+  .btn-primary:hover { opacity: .85; }
+  #login-error { color: var(--danger); font-size: 13px; margin-top: 8px; text-align: center; }
+
+  /* LAYOUT */
+  #app { display: none; flex-direction: row; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px; background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 24px 0; flex-shrink: 0; position: fixed; top: 0; bottom: 0;
+  }
+  .sidebar-logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .sidebar-logo span { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .sidebar-logo span b { color: var(--accent); }
+  .sidebar-logo small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px; cursor: pointer; border-radius: 0;
+    color: var(--muted); transition: all .15s; font-size: 13px; font-weight: 500;
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); background: rgba(0,200,150,.07); border-left-color: var(--accent); }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--border); }
+  .sidebar-footer button {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 12px; width: 100%;
+  }
+  .sidebar-footer button:hover { color: var(--danger); border-color: var(--danger); }
+
+  /* MAIN */
+  .main { margin-left: 220px; flex: 1; padding: 32px; min-height: 100vh; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+  /* CARDS / TABLE */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+  }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .card-header h3 { font-size: 15px; font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 10px 12px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 11px 12px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; letter-spacing: .3px;
+  }
+  .badge-green { background: rgba(0,200,150,.15); color: var(--accent); }
+  .badge-purple { background: rgba(108,99,255,.15); color: var(--accent2); }
+  .badge-red { background: rgba(255,79,79,.15); color: var(--danger); }
+  .badge-gray { background: rgba(122,128,153,.15); color: var(--muted); }
+  .badge-warn { background: rgba(245,166,35,.15); color: var(--warn); }
+
+  /* BUTTONS */
+  .btn {
+    padding: 7px 14px; border-radius: 7px; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 600; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .8; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  .btn-accent { background: var(--accent); color: #000; }
+  .btn-accent2 { background: var(--accent2); color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+
+  /* FORM */
+  .form-row { margin-bottom: 14px; }
+  .form-row label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%; padding: 9px 12px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 13px; outline: none; font-family: inherit;
+  }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--accent); }
+  .form-row textarea { resize: vertical; min-height: 80px; }
+  .form-row select option { background: var(--surface); }
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px; width: 540px; max-width: 95vw;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+  }
+  .stat-card .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .stat-card .value { font-size: 26px; font-weight: 800; }
+  .stat-card .sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filters select, .filters input {
+    padding: 7px 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 13px; outline: none;
+  }
+  .filters select:focus, .filters input:focus { border-color: var(--accent); }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 12px 20px; border-radius: 10px;
+    font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .25s;
+    z-index: 200; pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+
+  .loading { color: var(--muted); font-size: 13px; padding: 24px; text-align: center; }
+  .empty { color: var(--muted); font-size: 13px; padding: 32px; text-align: center; }
+  .text-clamp { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .text-muted { color: var(--muted); }
+  .flex-gap { display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>PHIN <b style="color:var(--accent)">Admin</b></h1>
+    <p>개발자 전용 관리 콘솔</p>
+    <input type="email" id="login-email" placeholder="이메일" value="blake@phin.health">
+    <input type="password" id="login-pw" placeholder="비밀번호">
+    <button class="btn-primary" onclick="doLogin()">로그인</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <span>P<b>HIN</b></span>
+      <small>Admin Console</small>
+    </div>
+    <div class="nav-item active" onclick="showPage('feedback')" id="nav-feedback">
+      <span class="nav-icon">📋</span> 피드백 관리
+    </div>
+    <div class="nav-item" onclick="showPage('contents')" id="nav-contents">
+      <span class="nav-icon">💬</span> 격언·팁·사자성어
+    </div>
+    <div class="nav-item" onclick="showPage('diet')" id="nav-diet">
+      <span class="nav-icon">🥗</span> 식단·조리법
+    </div>
+    <div class="nav-item" onclick="showPage('selfcheck')" id="nav-selfcheck">
+      <span class="nav-icon">🩺</span> 자가진단 문항
+    </div>
+    <div class="nav-item" onclick="showPage('users')" id="nav-users">
+      <span class="nav-icon">👥</span> 사용자 현황
+    </div>
+    <div class="nav-item" onclick="showPage('config')" id="nav-config">
+      <span class="nav-icon">⚙️</span> 앱 설정
+    </div>
+    <div class="sidebar-footer">
+      <button onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- ① 피드백 관리 -->
+    <div class="page active" id="page-feedback">
+      <div class="page-title">📋 피드백 관리</div>
+      <div class="page-sub">사용자 의견 전체 조회 (비공개 포함)</div>
+      <div class="filters">
+        <select id="fb-filter-cat" onchange="loadFeedback()">
+          <option value="">전체 유형</option>
+          <option value="bug">🐛 버그/오류</option>
+          <option value="request">💡 기능 요청</option>
+          <option value="other">💬 기타</option>
+        </select>
+        <select id="fb-filter-status" onchange="loadFeedback()">
+          <option value="">전체 상태</option>
+          <option value="received">접수됨</option>
+          <option value="reviewing">검토중</option>
+          <option value="done">완료</option>
+        </select>
+        <select id="fb-filter-public" onchange="loadFeedback()">
+          <option value="">전체 공개</option>
+          <option value="true">공개</option>
+          <option value="false">비공개</option>
+        </select>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr>
+            <th>유형</th><th>제목</th><th>내용</th><th>닉네임</th>
+            <th>공개</th><th>상태</th><th>투표</th><th>날짜</th><th>액션</th>
+          </tr></thead>
+          <tbody id="fb-tbody"><tr><td colspan="9" class="loading">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ② 격언·팁·사자성어 -->
+    <div class="page" id="page-contents">
+      <div class="page-title">💬 격언·팁·사자성어</div>
+      <div class="page-sub">daily_contents 테이블 관리</div>
+      <div class="filters">
+        <select id="dc-filter-type" onchange="loadContents()">
+          <option value="">전체 유형</option>
+          <option value="quote">격언</option>
+          <option value="tip">팁</option>
+          <option value="saying">사자성어</option>
+          <option value="exercise">운동법</option>
+        </select>
+        <button class="btn btn-accent" onclick="openContentsModal()">+ 새로 추가</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr>
+            <th>유형</th><th>카테고리</th><th>제목(main)</th><th>부제(sub)</th>
+            <th>본문</th><th>출처</th><th>날짜</th><th>액션</th>
+          </tr></thead>
+          <tbody id="dc-tbody"><tr><td colspan="8" class="loading">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ③ 식단·조리법 -->
+    <div class="page" id="page-diet">
+      <div class="page-title">🥗 식단·조리법</div>
+      <div class="page-sub">diet_recommendations 테이블 관리</div>
+      <div class="filters">
+        <select id="diet-filter-budget" onchange="loadDiet()">
+          <option value="">전체 예산</option>
+          <option value="low">저예산</option>
+          <option value="mid">중간</option>
+          <option value="high">고예산</option>
+        </select>
+        <button class="btn btn-accent" onclick="openDietModal()">+ 새로 추가</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr>
+            <th>메뉴명</th><th>상황</th><th>예산</th><th>칼로리</th>
+            <th>영양 포커스</th><th>알레르겐</th><th>액션</th>
+          </tr></thead>
+          <tbody id="diet-tbody"><tr><td colspan="7" class="loading">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ④ 자가진단 문항 -->
+    <div class="page" id="page-selfcheck">
+      <div class="page-title">🩺 자가진단 문항</div>
+      <div class="page-sub">self_check_items 테이블 관리</div>
+      <div class="filters">
+        <select id="sc-filter-marker" onchange="loadSelfCheck()">
+          <option value="">전체 마커</option>
+          <option value="scalp">두피·모발</option><option value="brain">뇌·정신</option>
+          <option value="eye">눈</option><option value="ear">귀</option>
+          <option value="teeth">치아·구강</option><option value="thyroid">갑상선</option>
+          <option value="lung">폐·호흡기</option><option value="heart">심장</option>
+          <option value="breast">유방</option><option value="liver">간·담</option>
+          <option value="stomach">위</option><option value="pancreas">췌장·대사</option>
+          <option value="kidney">신장·비뇨</option><option value="colon">대장·장</option>
+          <option value="genital">생식기</option><option value="spine">척추</option>
+          <option value="joint">관절·뼈</option>
+        </select>
+        <select id="sc-filter-sex" onchange="loadSelfCheck()">
+          <option value="">전체 성별</option>
+          <option value="any">공통</option>
+          <option value="male">남성</option>
+          <option value="female">여성</option>
+        </select>
+        <button class="btn btn-accent" onclick="openSelfCheckModal()">+ 새로 추가</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr>
+            <th>마커</th><th>성별</th><th>나이</th><th>문항</th>
+            <th>색반영</th><th>순서</th><th>액션</th>
+          </tr></thead>
+          <tbody id="sc-tbody"><tr><td colspan="7" class="loading">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ⑤ 사용자 현황 -->
+    <div class="page" id="page-users">
+      <div class="page-title">👥 사용자 현황</div>
+      <div class="page-sub">읽기 전용 — 실시간 현황</div>
+      <div class="stats-grid" id="user-stats">
+        <div class="stat-card"><div class="label">전체 가입자</div><div class="value" id="stat-total">-</div></div>
+        <div class="stat-card"><div class="label">THE PHiN</div><div class="value" id="stat-phin" style="color:var(--accent)">-</div></div>
+        <div class="stat-card"><div class="label">평균 점수</div><div class="value" id="stat-avg">-</div></div>
+        <div class="stat-card"><div class="label">평균 신체나이</div><div class="value" id="stat-age">-</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>티어 분포</h3></div>
+        <table>
+          <thead><tr><th>티어</th><th>점수 구간</th><th>인원</th><th>비율</th></tr></thead>
+          <tbody id="tier-tbody"><tr><td colspan="4" class="loading">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>최근 가입자</h3></div>
+        <table>
+          <thead><tr><th>닉네임</th><th>성별</th><th>나이</th><th>BMI</th><th>점수</th><th>가입일</th></tr></thead>
+          <tbody id="users-tbody"><tr><td colspan="6" class="loading">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ⑥ 앱 설정 -->
+    <div class="page" id="page-config">
+      <div class="page-title">⚙️ 앱 설정</div>
+      <div class="page-sub">app_config 테이블 — key/value 설정값</div>
+      <div class="filters">
+        <button class="btn btn-accent" onclick="openConfigModal()">+ 새 설정 추가</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>키</th><th>값</th><th>수정일</th><th>액션</th></tr></thead>
+          <tbody id="config-tbody"><tr><td colspan="4" class="loading">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ===== MODALS ===== -->
+
+<!-- 피드백 상세 모달 -->
+<div class="modal-overlay" id="modal-feedback">
+  <div class="modal">
+    <h3>피드백 상세</h3>
+    <div id="fb-detail-content"></div>
+    <div class="form-row" style="margin-top:16px">
+      <label>관리자 답변</label>
+      <textarea id="fb-reply-text" rows="3" placeholder="답변을 입력하세요..."></textarea>
+    </div>
+    <div class="form-row">
+      <label>상태 변경</label>
+      <select id="fb-status-select">
+        <option value="received">접수됨</option>
+        <option value="reviewing">검토중</option>
+        <option value="done">완료</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-feedback')">닫기</button>
+      <button class="btn btn-accent" onclick="saveFeedback()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 콘텐츠 추가/수정 모달 -->
+<div class="modal-overlay" id="modal-contents">
+  <div class="modal">
+    <h3 id="contents-modal-title">격언·팁·사자성어 추가</h3>
+    <input type="hidden" id="contents-edit-id">
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>유형 *</label>
+        <select id="dc-type">
+          <option value="quote">격언</option>
+          <option value="tip">팁</option>
+          <option value="saying">사자성어</option>
+          <option value="exercise">운동법</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>카테고리</label>
+        <input id="dc-category" placeholder="예: 건강, 동기, 명상">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>제목 (main) *</label>
+      <input id="dc-main" placeholder="격언 제목 또는 사자성어">
+    </div>
+    <div class="form-row">
+      <label>부제 (sub)</label>
+      <input id="dc-sub" placeholder="한줄 해석 또는 부제">
+    </div>
+    <div class="form-row">
+      <label>본문 (body)</label>
+      <textarea id="dc-body" placeholder="상세 설명 또는 해설"></textarea>
+    </div>
+    <div class="form-row">
+      <label>출처 (source)</label>
+      <input id="dc-source" placeholder="예: 논어, WHO, 아리스토텔레스">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-contents')">취소</button>
+      <button class="btn btn-accent" onclick="saveContents()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 식단 추가/수정 모달 -->
+<div class="modal-overlay" id="modal-diet">
+  <div class="modal">
+    <h3 id="diet-modal-title">식단·조리법 추가</h3>
+    <input type="hidden" id="diet-edit-id">
+    <div class="form-row">
+      <label>메뉴명 *</label>
+      <input id="diet-menu" placeholder="예: 된장국 + 현미밥">
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>상황</label>
+        <input id="diet-situation" placeholder="예: 다이어트, 근력증가">
+      </div>
+      <div class="form-row">
+        <label>예산</label>
+        <select id="diet-budget">
+          <option value="low">저예산</option>
+          <option value="mid">중간</option>
+          <option value="high">고예산</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>칼로리 (kcal)</label>
+        <input id="diet-kcal" type="number" placeholder="500">
+      </div>
+      <div class="form-row">
+        <label>영양 포커스</label>
+        <input id="diet-nutrition" placeholder="예: 단백질, 저탄수">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>재료</label>
+      <textarea id="diet-ingredients" placeholder="주재료, 조리 방법 등"></textarea>
+    </div>
+    <div class="form-row">
+      <label>알레르겐 태그 (쉼표 구분)</label>
+      <input id="diet-allergen" placeholder="예: 글루텐, 유제품, 견과류">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-diet')">취소</button>
+      <button class="btn btn-accent" onclick="saveDiet()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 자가진단 추가/수정 모달 -->
+<div class="modal-overlay" id="modal-selfcheck">
+  <div class="modal">
+    <h3 id="sc-modal-title">자가진단 문항 추가</h3>
+    <input type="hidden" id="sc-edit-id">
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>마커 *</label>
+        <select id="sc-marker">
+          <option value="scalp">두피·모발</option><option value="brain">뇌·정신</option>
+          <option value="eye">눈</option><option value="ear">귀</option>
+          <option value="teeth">치아·구강</option><option value="thyroid">갑상선</option>
+          <option value="lung">폐·호흡기</option><option value="heart">심장</option>
+          <option value="breast">유방</option><option value="liver">간·담</option>
+          <option value="stomach">위</option><option value="pancreas">췌장·대사</option>
+          <option value="kidney">신장·비뇨</option><option value="colon">대장·장</option>
+          <option value="genital">생식기</option><option value="spine">척추</option>
+          <option value="joint">관절·뼈</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>성별</label>
+        <select id="sc-sex">
+          <option value="any">공통</option>
+          <option value="male">남성</option>
+          <option value="female">여성</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>최소 나이</label>
+        <input id="sc-age-min" type="number" placeholder="20">
+      </div>
+      <div class="form-row">
+        <label>최대 나이</label>
+        <input id="sc-age-max" type="number" placeholder="99">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>문항 *</label>
+      <textarea id="sc-question" placeholder="자가진단 질문 내용"></textarea>
+    </div>
+    <div class="form-row">
+      <label>안내문 (guide)</label>
+      <textarea id="sc-guide" placeholder="결과에 따른 안내 또는 전문의 권유 문구"></textarea>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>색 반영 여부</label>
+        <select id="sc-color">
+          <option value="true">반영 (색 변경)</option>
+          <option value="false">미반영 (전문가 의뢰)</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>표시 순서</label>
+        <input id="sc-order" type="number" placeholder="1">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-selfcheck')">취소</button>
+      <button class="btn btn-accent" onclick="saveSelfCheck()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 앱 설정 모달 -->
+<div class="modal-overlay" id="modal-config">
+  <div class="modal">
+    <h3 id="config-modal-title">설정 추가</h3>
+    <input type="hidden" id="config-edit-key">
+    <div class="form-row">
+      <label>키 (key) *</label>
+      <input id="config-key" placeholder="예: max_gpt_calls_per_day">
+    </div>
+    <div class="form-row">
+      <label>값 (value — JSON 형식)</label>
+      <textarea id="config-value" placeholder='예: 50 또는 "text" 또는 {"key":"val"}'></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-config')">취소</button>
+      <button class="btn btn-accent" onclick="saveConfig()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ===== SUPABASE 설정 =====
+const SUPABASE_URL = 'https://ytseevffdonnfxcgfzxe.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0c2VldmZmZG9ubmZ4Y2dmenhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTg1OTYsImV4cCI6MjA5MjUzNDU5Nn0.HZOQ1bo7BAzxXbdLyTD-y_xPWgZD17SWZIc9LwIFnhA';
+const ALLOWED_EMAIL = 'blake@phin.health';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentFeedbackId = null;
+
+// ===== AUTH =====
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  const err = document.getElementById('login-error');
+
+  if (email !== ALLOWED_EMAIL) {
+    err.textContent = '접근 권한이 없습니다.'; return;
+  }
+  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) { err.textContent = '비밀번호가 틀렸습니다.'; return; }
+  initApp();
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+async function initApp() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session || session.user.email !== ALLOWED_EMAIL) return;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  loadFeedback();
+}
+
+window.addEventListener('load', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session && session.user.email === ALLOWED_EMAIL) initApp();
+});
+
+document.getElementById('login-pw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ===== NAVIGATION =====
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  const loaders = { feedback: loadFeedback, contents: loadContents, diet: loadDiet, selfcheck: loadSelfCheck, users: loadUsers, config: loadConfig };
+  if (loaders[name]) loaders[name]();
+}
+
+// ===== TOAST =====
+function toast(msg, dur = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// ===== MODAL =====
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// ===== HELPERS =====
+function fmtDate(d) {
+  if (!d) return '-';
+  return new Date(d).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+function statusBadge(s) {
+  const m = { received: ['접수됨','badge-gray'], reviewing: ['검토중','badge-warn'], done: ['완료','badge-green'] };
+  const [l, c] = m[s] || [s, 'badge-gray'];
+  return `<span class="badge ${c}">${l}</span>`;
+}
+function catBadge(c) {
+  const m = { bug: ['🐛 버그','badge-red'], request: ['💡 기능요청','badge-purple'], other: ['💬 기타','badge-gray'] };
+  const [l, cls] = m[c] || [c, 'badge-gray'];
+  return `<span class="badge ${cls}">${l}</span>`;
+}
+
+// ===== ① 피드백 =====
+async function loadFeedback() {
+  const cat = document.getElementById('fb-filter-cat').value;
+  const status = document.getElementById('fb-filter-status').value;
+  const pub = document.getElementById('fb-filter-public').value;
+
+  let q = sb.from('feedback').select('*').order('created_at', { ascending: false });
+  if (cat) q = q.eq('category', cat);
+  if (status) q = q.eq('status', status);
+  if (pub !== '') q = q.eq('is_public', pub === 'true');
+
+  const { data, error } = await q;
+  const tbody = document.getElementById('fb-tbody');
+  if (error || !data?.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">${error ? '오류 발생' : '피드백 없음'}</td></tr>`; return;
+  }
+  tbody.innerHTML = data.map(f => `
+    <tr>
+      <td>${catBadge(f.category)}</td>
+      <td class="text-clamp">${f.title || '-'}</td>
+      <td class="text-clamp text-muted">${f.content || '-'}</td>
+      <td>${f.is_nickname_public ? f.nickname : '<span class="text-muted">익명</span>'}</td>
+      <td><span class="badge ${f.is_public ? 'badge-green' : 'badge-gray'}">${f.is_public ? '공개' : '비공개'}</span></td>
+      <td>${statusBadge(f.status)}</td>
+      <td>${f.vote_count ?? 0}</td>
+      <td class="text-muted">${fmtDate(f.created_at)}</td>
+      <td><button class="btn btn-sm btn-ghost" onclick="openFeedbackDetail('${f.id}')">상세</button></td>
+    </tr>
+  `).join('');
+}
+
+async function openFeedbackDetail(id) {
+  const { data: f } = await sb.from('feedback').select('*').eq('id', id).single();
+  if (!f) return;
+  currentFeedbackId = id;
+  document.getElementById('fb-detail-content').innerHTML = `
+    <div style="background:var(--bg);border-radius:8px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">${catBadge(f.category)}${statusBadge(f.status)}<span class="badge ${f.is_public?'badge-green':'badge-gray'}">${f.is_public?'공개':'비공개'}</span></div>
+      <div style="font-weight:600;margin-bottom:6px">${f.title||'(제목 없음)'}</div>
+      <div style="color:var(--muted);font-size:13px;line-height:1.6">${f.content||''}</div>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted)">
+        작성자: ${f.is_nickname_public?f.nickname:'익명'} · 화면: ${f.screen||'-'} · 투표: ${f.vote_count??0} · ${fmtDate(f.created_at)}
+      </div>
+      ${f.admin_reply ? `<div style="margin-top:10px;padding:10px;background:rgba(0,200,150,.07);border-radius:6px;font-size:12px"><b style="color:var(--accent)">기존 답변:</b> ${f.admin_reply}</div>` : ''}
+    </div>
+  `;
+  document.getElementById('fb-reply-text').value = f.admin_reply || '';
+  document.getElementById('fb-status-select').value = f.status || 'received';
+  openModal('modal-feedback');
+}
+
+async function saveFeedback() {
+  if (!currentFeedbackId) return;
+  const reply = document.getElementById('fb-reply-text').value.trim();
+  const status = document.getElementById('fb-status-select').value;
+  const { error } = await sb.from('feedback').update({ admin_reply: reply || null, status, updated_at: new Date().toISOString() }).eq('id', currentFeedbackId);
+  if (error) { toast('저장 실패'); return; }
+  toast('저장 완료 ✓');
+  closeModal('modal-feedback');
+  loadFeedback();
+}
+
+// ===== ② 격언·팁·사자성어 =====
+async function loadContents() {
+  const type = document.getElementById('dc-filter-type').value;
+  let q = sb.from('daily_contents').select('*').order('created_at', { ascending: false }).limit(100);
+  if (type) q = q.eq('type', type);
+  const { data, error } = await q;
+  const tbody = document.getElementById('dc-tbody');
+  if (error || !data?.length) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
+  }
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td><span class="badge badge-purple">${d.type||'-'}</span></td>
+      <td class="text-muted">${d.category||'-'}</td>
+      <td class="text-clamp">${d.main||'-'}</td>
+      <td class="text-clamp text-muted">${d.sub||'-'}</td>
+      <td class="text-clamp text-muted">${d.body||'-'}</td>
+      <td class="text-muted">${d.source||'-'}</td>
+      <td class="text-muted">${fmtDate(d.created_at)}</td>
+      <td>
+        <div class="flex-gap">
+          <button class="btn btn-sm btn-ghost" onclick="editContents(${d.id})">수정</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteContents(${d.id})">삭제</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openContentsModal(d = null) {
+  document.getElementById('contents-modal-title').textContent = d ? '콘텐츠 수정' : '격언·팁·사자성어 추가';
+  document.getElementById('contents-edit-id').value = d?.id || '';
+  document.getElementById('dc-type').value = d?.type || 'quote';
+  document.getElementById('dc-category').value = d?.category || '';
+  document.getElementById('dc-main').value = d?.main || '';
+  document.getElementById('dc-sub').value = d?.sub || '';
+  document.getElementById('dc-body').value = d?.body || '';
+  document.getElementById('dc-source').value = d?.source || '';
+  openModal('modal-contents');
+}
+
+async function editContents(id) {
+  const { data } = await sb.from('daily_contents').select('*').eq('id', id).single();
+  if (data) openContentsModal(data);
+}
+
+async function saveContents() {
+  const id = document.getElementById('contents-edit-id').value;
+  const payload = {
+    type: document.getElementById('dc-type').value,
+    category: document.getElementById('dc-category').value || null,
+    main: document.getElementById('dc-main').value.trim(),
+    sub: document.getElementById('dc-sub').value.trim() || null,
+    body: document.getElementById('dc-body').value.trim() || null,
+    source: document.getElementById('dc-source').value.trim() || null,
+  };
+  if (!payload.main) { toast('제목을 입력하세요'); return; }
+  const { error } = id
+    ? await sb.from('daily_contents').update(payload).eq('id', id)
+    : await sb.from('daily_contents').insert(payload);
+  if (error) { toast('저장 실패: ' + error.message); return; }
+  toast('저장 완료 ✓'); closeModal('modal-contents'); loadContents();
+}
+
+async function deleteContents(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  const { error } = await sb.from('daily_contents').delete().eq('id', id);
+  if (error) { toast('삭제 실패'); return; }
+  toast('삭제 완료'); loadContents();
+}
+
+// ===== ③ 식단·조리법 =====
+async function loadDiet() {
+  const budget = document.getElementById('diet-filter-budget').value;
+  let q = sb.from('diet_recommendations').select('*').order('id', { ascending: false }).limit(100);
+  if (budget) q = q.eq('budget', budget);
+  const { data, error } = await q;
+  const tbody = document.getElementById('diet-tbody');
+  if (error || !data?.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
+  }
+  const budgetLabel = { low: '저예산', mid: '중간', high: '고예산' };
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td>${d.menu_name||'-'}</td>
+      <td class="text-muted">${d.situation||'-'}</td>
+      <td><span class="badge badge-gray">${budgetLabel[d.budget]||d.budget||'-'}</span></td>
+      <td>${d.kcal ? d.kcal + ' kcal' : '-'}</td>
+      <td class="text-muted">${d.nutrition_focus||'-'}</td>
+      <td class="text-muted">${Array.isArray(d.allergen_tags) ? d.allergen_tags.join(', ') : (d.allergen_tags||'-')}</td>
+      <td>
+        <div class="flex-gap">
+          <button class="btn btn-sm btn-ghost" onclick="editDiet('${d.id}')">수정</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteDiet('${d.id}')">삭제</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openDietModal(d = null) {
+  document.getElementById('diet-modal-title').textContent = d ? '식단 수정' : '식단·조리법 추가';
+  document.getElementById('diet-edit-id').value = d?.id || '';
+  document.getElementById('diet-menu').value = d?.menu_name || '';
+  document.getElementById('diet-situation').value = d?.situation || '';
+  document.getElementById('diet-budget').value = d?.budget || 'low';
+  document.getElementById('diet-kcal').value = d?.kcal || '';
+  document.getElementById('diet-nutrition').value = d?.nutrition_focus || '';
+  document.getElementById('diet-ingredients').value = d?.ingredients || '';
+  document.getElementById('diet-allergen').value = Array.isArray(d?.allergen_tags) ? d.allergen_tags.join(', ') : (d?.allergen_tags || '');
+  openModal('modal-diet');
+}
+
+async function editDiet(id) {
+  const { data } = await sb.from('diet_recommendations').select('*').eq('id', id).single();
+  if (data) openDietModal(data);
+}
+
+async function saveDiet() {
+  const id = document.getElementById('diet-edit-id').value;
+  const allergenRaw = document.getElementById('diet-allergen').value;
+  const allergenArr = allergenRaw ? allergenRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const payload = {
+    menu_name: document.getElementById('diet-menu').value.trim(),
+    situation: document.getElementById('diet-situation').value.trim() || null,
+    budget: document.getElementById('diet-budget').value,
+    kcal: parseInt(document.getElementById('diet-kcal').value) || null,
+    nutrition_focus: document.getElementById('diet-nutrition').value.trim() || null,
+    ingredients: document.getElementById('diet-ingredients').value.trim() || null,
+    allergen_tags: allergenArr.length ? allergenArr : null,
+  };
+  if (!payload.menu_name) { toast('메뉴명을 입력하세요'); return; }
+  const { error } = id
+    ? await sb.from('diet_recommendations').update(payload).eq('id', id)
+    : await sb.from('diet_recommendations').insert(payload);
+  if (error) { toast('저장 실패: ' + error.message); return; }
+  toast('저장 완료 ✓'); closeModal('modal-diet'); loadDiet();
+}
+
+async function deleteDiet(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  const { error } = await sb.from('diet_recommendations').delete().eq('id', id);
+  if (error) { toast('삭제 실패'); return; }
+  toast('삭제 완료'); loadDiet();
+}
+
+// ===== ④ 자가진단 =====
+async function loadSelfCheck() {
+  const marker = document.getElementById('sc-filter-marker').value;
+  const sex = document.getElementById('sc-filter-sex').value;
+  let q = sb.from('self_check_items').select('*').order('sort_order').limit(200);
+  if (marker) q = q.eq('marker', marker);
+  if (sex) q = q.eq('sex', sex);
+  const { data, error } = await q;
+  const tbody = document.getElementById('sc-tbody');
+  if (error || !data?.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
+  }
+  const sexLabel = { any: '공통', male: '남성', female: '여성' };
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td><span class="badge badge-purple">${d.marker||'-'}</span></td>
+      <td><span class="badge badge-gray">${sexLabel[d.sex]||d.sex||'-'}</span></td>
+      <td class="text-muted">${d.age_min??'-'}~${d.age_max??'-'}세</td>
+      <td class="text-clamp">${d.question||'-'}</td>
+      <td><span class="badge ${d.affects_color?'badge-green':'badge-warn'}">${d.affects_color?'색반영':'전문가의뢰'}</span></td>
+      <td class="text-muted">${d.sort_order??'-'}</td>
+      <td>
+        <div class="flex-gap">
+          <button class="btn btn-sm btn-ghost" onclick="editSelfCheck(${d.id})">수정</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteSelfCheck(${d.id})">삭제</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openSelfCheckModal(d = null) {
+  document.getElementById('sc-modal-title').textContent = d ? '자가진단 수정' : '자가진단 문항 추가';
+  document.getElementById('sc-edit-id').value = d?.id || '';
+  document.getElementById('sc-marker').value = d?.marker || 'scalp';
+  document.getElementById('sc-sex').value = d?.sex || 'any';
+  document.getElementById('sc-age-min').value = d?.age_min || '';
+  document.getElementById('sc-age-max').value = d?.age_max || '';
+  document.getElementById('sc-question').value = d?.question || '';
+  document.getElementById('sc-guide').value = d?.guide || '';
+  document.getElementById('sc-color').value = d?.affects_color !== false ? 'true' : 'false';
+  document.getElementById('sc-order').value = d?.sort_order || '';
+  openModal('modal-selfcheck');
+}
+
+async function editSelfCheck(id) {
+  const { data } = await sb.from('self_check_items').select('*').eq('id', id).single();
+  if (data) openSelfCheckModal(data);
+}
+
+async function saveSelfCheck() {
+  const id = document.getElementById('sc-edit-id').value;
+  const payload = {
+    marker: document.getElementById('sc-marker').value,
+    sex: document.getElementById('sc-sex').value,
+    age_min: parseInt(document.getElementById('sc-age-min').value) || null,
+    age_max: parseInt(document.getElementById('sc-age-max').value) || null,
+    question: document.getElementById('sc-question').value.trim(),
+    guide: document.getElementById('sc-guide').value.trim() || null,
+    affects_color: document.getElementById('sc-color').value === 'true',
+    sort_order: parseInt(document.getElementById('sc-order').value) || null,
+  };
+  if (!payload.question) { toast('문항을 입력하세요'); return; }
+  const { error } = id
+    ? await sb.from('self_check_items').update(payload).eq('id', id)
+    : await sb.from('self_check_items').insert(payload);
+  if (error) { toast('저장 실패: ' + error.message); return; }
+  toast('저장 완료 ✓'); closeModal('modal-selfcheck'); loadSelfCheck();
+}
+
+async function deleteSelfCheck(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  const { error } = await sb.from('self_check_items').delete().eq('id', id);
+  if (error) { toast('삭제 실패'); return; }
+  toast('삭제 완료'); loadSelfCheck();
+}
+
+// ===== ⑤ 사용자 현황 =====
+async function loadUsers() {
+  const { data: profiles } = await sb.from('user_profiles').select('nickname, gender, birth_year, bmi, age, body_age, created_at, phin_score').order('created_at', { ascending: false }).limit(20);
+  const { count } = await sb.from('user_profiles').select('id', { count: 'exact', head: true });
+
+  document.getElementById('stat-total').textContent = count ?? '-';
+
+  if (profiles?.length) {
+    const avgScore = Math.round(profiles.reduce((a, p) => a + (p.phin_score || 0), 0) / profiles.length);
+    const avgAge = Math.round(profiles.reduce((a, p) => a + (p.body_age || p.age || 0), 0) / profiles.length);
+    document.getElementById('stat-avg').textContent = avgScore || '-';
+    document.getElementById('stat-age').textContent = avgAge ? avgAge + '세' : '-';
+  }
+
+  // 티어 분포
+  const tiers = [
+    { name: 'THE PHiN', min: 100, max: 100, cls: 'badge-green' },
+    { name: 'BLACK PHiN', min: 95, max: 99, cls: 'badge-gray' },
+    { name: 'GREEN PHiN', min: 80, max: 94, cls: 'badge-green' },
+    { name: 'BLUE PHiN', min: 65, max: 79, cls: 'badge-purple' },
+    { name: 'YELLOW PHiN', min: 50, max: 64, cls: 'badge-warn' },
+    { name: 'RED PHiN', min: 35, max: 49, cls: 'badge-red' },
+    { name: 'GRAY PHiN', min: 0, max: 34, cls: 'badge-gray' },
+  ];
+  const tierRows = await Promise.all(tiers.map(async t => {
+    const { count: c } = await sb.from('user_profiles').select('id', { count: 'exact', head: true })
+      .gte('phin_score', t.min).lte('phin_score', t.max);
+    const pct = count ? Math.round((c || 0) / count * 100) : 0;
+    return `<tr><td><span class="badge ${t.cls}">${t.name}</span></td><td class="text-muted">${t.min}~${t.max}점</td><td>${c ?? 0}명</td><td>${pct}%</td></tr>`;
+  }));
+  document.getElementById('tier-tbody').innerHTML = tierRows.join('');
+  document.getElementById('stat-phin').textContent = (tierRows[0].match(/\d+명/) || ['-'])[0];
+
+  const genderLabel = { male: '남', female: '여' };
+  document.getElementById('users-tbody').innerHTML = (profiles || []).map(p => {
+    const age = p.age || (p.birth_year ? new Date().getFullYear() - p.birth_year : '-');
+    return `<tr>
+      <td>${p.nickname || '익명'}</td>
+      <td>${genderLabel[p.gender] || '-'}</td>
+      <td>${age}세</td>
+      <td>${p.bmi ? Number(p.bmi).toFixed(1) : '-'}</td>
+      <td><span class="badge badge-green">${p.phin_score ?? '-'}</span></td>
+      <td class="text-muted">${fmtDate(p.created_at)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="empty">데이터 없음</td></tr>';
+}
+
+// ===== ⑥ 앱 설정 =====
+async function loadConfig() {
+  const { data, error } = await sb.from('app_config').select('*').order('key');
+  const tbody = document.getElementById('config-tbody');
+  if (error || !data?.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty">${error ? '오류 발생' : '설정 없음'}</td></tr>`; return;
+  }
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td style="font-family:monospace;color:var(--accent)">${d.key}</td>
+      <td style="font-family:monospace;font-size:12px;color:var(--muted)">${JSON.stringify(d.value)}</td>
+      <td class="text-muted">${fmtDate(d.updated_at)}</td>
+      <td>
+        <div class="flex-gap">
+          <button class="btn btn-sm btn-ghost" onclick="editConfig('${d.key}')">수정</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteConfig('${d.key}')">삭제</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openConfigModal(d = null) {
+  document.getElementById('config-modal-title').textContent = d ? '설정 수정' : '설정 추가';
+  document.getElementById('config-edit-key').value = d?.key || '';
+  document.getElementById('config-key').value = d?.key || '';
+  document.getElementById('config-key').disabled = !!d;
+  document.getElementById('config-value').value = d ? JSON.stringify(d.value, null, 2) : '';
+  openModal('modal-config');
+}
+
+async function editConfig(key) {
+  const { data } = await sb.from('app_config').select('*').eq('key', key).single();
+  if (data) openConfigModal(data);
+}
+
+async function saveConfig() {
+  const editKey = document.getElementById('config-edit-key').value;
+  const key = document.getElementById('config-key').value.trim();
+  const valueRaw = document.getElementById('config-value').value.trim();
+  if (!key) { toast('키를 입력하세요'); return; }
+  let value;
+  try { value = JSON.parse(valueRaw); } catch { value = valueRaw; }
+  const payload = { key, value, updated_at: new Date().toISOString() };
+  const { error } = editKey
+    ? await sb.from('app_config').update({ value, updated_at: payload.updated_at }).eq('key', editKey)
+    : await sb.from('app_config').upsert(payload, { onConflict: 'key' });
+  if (error) { toast('저장 실패: ' + error.message); return; }
+  toast('저장 완료 ✓'); closeModal('modal-config'); loadConfig();
+}
+
+async function deleteConfig(key) {
+  if (!confirm(`'${key}' 설정을 삭제하시겠습니까?`)) return;
+  const { error } = await sb.from('app_config').delete().eq('key', key);
+  if (error) { toast('삭제 실패'); return; }
+  toast('삭제 완료'); loadConfig();
+}
+</script>
+</body>
+</html>
