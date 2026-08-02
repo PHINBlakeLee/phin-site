@@ -244,8 +244,8 @@
         </select>
         <select id="fb-filter-status" onchange="loadFeedback()">
           <option value="">전체 상태</option>
-          <option value="received">접수됨</option>
-          <option value="reviewing">검토중</option>
+          <option value="received">접수중</option>
+          <option value="reviewing">진행중</option>
           <option value="done">완료</option>
         </select>
         <select id="fb-filter-public" onchange="loadFeedback()">
@@ -255,12 +255,13 @@
         </select>
       </div>
       <div class="card">
+        <div class="card-header"><h3 id="fb-count-label">전체</h3></div>
         <table>
           <thead><tr>
-            <th>유형</th><th>제목</th><th>내용</th><th>닉네임</th>
+            <th>#</th><th>유형</th><th>제목</th><th>내용</th><th>닉네임</th>
             <th>공개</th><th>상태</th><th>투표</th><th>날짜</th><th>액션</th>
           </tr></thead>
-          <tbody id="fb-tbody"><tr><td colspan="9" class="loading">로딩 중...</td></tr></tbody>
+          <tbody id="fb-tbody"><tr><td colspan="10" class="loading">로딩 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -280,12 +281,13 @@
         <button class="btn btn-accent" onclick="openContentsModal()">+ 새로 추가</button>
       </div>
       <div class="card">
+        <div class="card-header"><h3 id="dc-count-label">전체</h3></div>
         <table>
           <thead><tr>
-            <th>유형</th><th>카테고리</th><th>제목(main)</th><th>부제(sub)</th>
+            <th>#</th><th>유형</th><th>카테고리</th><th>제목(main)</th><th>부제(sub)</th>
             <th>본문</th><th>출처</th><th>날짜</th><th>액션</th>
           </tr></thead>
-          <tbody id="dc-tbody"><tr><td colspan="8" class="loading">로딩 중...</td></tr></tbody>
+          <tbody id="dc-tbody"><tr><td colspan="9" class="loading">로딩 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -304,12 +306,13 @@
         <button class="btn btn-accent" onclick="openDietModal()">+ 새로 추가</button>
       </div>
       <div class="card">
+        <div class="card-header"><h3 id="diet-count-label">전체</h3></div>
         <table>
           <thead><tr>
-            <th>메뉴명</th><th>상황</th><th>예산</th><th>칼로리</th>
+            <th>#</th><th>메뉴명</th><th>상황</th><th>예산</th><th>칼로리</th>
             <th>영양 포커스</th><th>알레르겐</th><th>액션</th>
           </tr></thead>
-          <tbody id="diet-tbody"><tr><td colspan="7" class="loading">로딩 중...</td></tr></tbody>
+          <tbody id="diet-tbody"><tr><td colspan="8" class="loading">로딩 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -340,12 +343,13 @@
         <button class="btn btn-accent" onclick="openSelfCheckModal()">+ 새로 추가</button>
       </div>
       <div class="card">
+        <div class="card-header"><h3 id="sc-count-label">전체</h3></div>
         <table>
           <thead><tr>
-            <th>마커</th><th>성별</th><th>나이</th><th>문항</th>
+            <th>#</th><th>마커</th><th>성별</th><th>나이</th><th>문항</th>
             <th>색반영</th><th>순서</th><th>액션</th>
           </tr></thead>
-          <tbody id="sc-tbody"><tr><td colspan="7" class="loading">로딩 중...</td></tr></tbody>
+          <tbody id="sc-tbody"><tr><td colspan="8" class="loading">로딩 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -384,9 +388,10 @@
         <button class="btn btn-accent" onclick="openConfigModal()">+ 새 설정 추가</button>
       </div>
       <div class="card">
+        <div class="card-header"><h3 id="config-count-label">전체</h3></div>
         <table>
-          <thead><tr><th>키</th><th>값</th><th>수정일</th><th>액션</th></tr></thead>
-          <tbody id="config-tbody"><tr><td colspan="4" class="loading">로딩 중...</td></tr></tbody>
+          <thead><tr><th>#</th><th>키</th><th>값</th><th>수정일</th><th>액션</th></tr></thead>
+          <tbody id="config-tbody"><tr><td colspan="5" class="loading">로딩 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -408,8 +413,8 @@
     <div class="form-row">
       <label>상태 변경</label>
       <select id="fb-status-select">
-        <option value="received">접수됨</option>
-        <option value="reviewing">검토중</option>
+        <option value="received">접수중</option>
+        <option value="reviewing">진행중</option>
         <option value="done">완료</option>
       </select>
     </div>
@@ -677,9 +682,20 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 function statusBadge(s) {
-  const m = { received: ['접수됨','badge-gray'], reviewing: ['검토중','badge-warn'], done: ['완료','badge-green'] };
+  const m = { received: ['접수중','badge-gray'], reviewing: ['진행중','badge-warn'], done: ['완료','badge-green'] };
   const [l, c] = m[s] || [s, 'badge-gray'];
   return `<span class="badge ${c}">${l}</span>`;
+}
+function statusNextBtn(id, current) {
+  if (current === 'received') return `<button class="btn btn-sm btn-accent2" onclick="quickStatus('${id}','reviewing')">진행중으로</button>`;
+  if (current === 'reviewing') return `<button class="btn btn-sm btn-accent" onclick="quickStatus('${id}','done')">완료</button>`;
+  return `<span class="text-muted" style="font-size:11px">완료됨</span>`;
+}
+async function quickStatus(id, status) {
+  const { error } = await sb.from('feedback').update({ status, updated_at: new Date().toISOString() }).eq('id', id);
+  if (error) { toast('변경 실패'); return; }
+  toast(status === 'reviewing' ? '진행중으로 변경 ✓' : '완료 처리 ✓');
+  loadFeedback();
 }
 function catBadge(c) {
   const m = { bug: ['🐛 버그','badge-red'], request: ['💡 기능요청','badge-purple'], other: ['💬 기타','badge-gray'] };
@@ -701,16 +717,24 @@ async function loadFeedback() {
   const { data, error } = await q;
   const tbody = document.getElementById('fb-tbody');
   if (error || !data?.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="empty">${error ? '오류 발생' : '피드백 없음'}</td></tr>`; return;
+    document.getElementById('fb-count-label').textContent = '전체 0건';
+    tbody.innerHTML = `<tr><td colspan="10" class="empty">${error ? '오류 발생' : '피드백 없음'}</td></tr>`; return;
   }
-  tbody.innerHTML = data.map(f => `
+  document.getElementById('fb-count-label').textContent = `전체 ${data.length}건`;
+  tbody.innerHTML = data.map((f, i) => `
     <tr>
+      <td class="text-muted">${i + 1}</td>
       <td>${catBadge(f.category)}</td>
       <td class="text-clamp">${f.title || '-'}</td>
       <td class="text-clamp text-muted">${f.content || '-'}</td>
       <td>${f.is_nickname_public ? f.nickname : '<span class="text-muted">익명</span>'}</td>
       <td><span class="badge ${f.is_public ? 'badge-green' : 'badge-gray'}">${f.is_public ? '공개' : '비공개'}</span></td>
-      <td>${statusBadge(f.status)}</td>
+      <td>
+        <div class="flex-gap" style="align-items:center">
+          ${statusBadge(f.status)}
+          ${statusNextBtn(f.id, f.status)}
+        </div>
+      </td>
       <td>${f.vote_count ?? 0}</td>
       <td class="text-muted">${fmtDate(f.created_at)}</td>
       <td><button class="btn btn-sm btn-ghost" onclick="openFeedbackDetail('${f.id}')">상세</button></td>
@@ -757,10 +781,13 @@ async function loadContents() {
   const { data, error } = await q;
   const tbody = document.getElementById('dc-tbody');
   if (error || !data?.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
+    document.getElementById('dc-count-label').textContent = '전체 0건';
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
   }
-  tbody.innerHTML = data.map(d => `
+  document.getElementById('dc-count-label').textContent = `전체 ${data.length}건`;
+  tbody.innerHTML = data.map((d, i) => `
     <tr>
+      <td class="text-muted">${i + 1}</td>
       <td><span class="badge badge-purple">${d.type||'-'}</span></td>
       <td class="text-muted">${d.category||'-'}</td>
       <td class="text-clamp">${d.main||'-'}</td>
@@ -828,11 +855,14 @@ async function loadDiet() {
   const { data, error } = await q;
   const tbody = document.getElementById('diet-tbody');
   if (error || !data?.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
+    document.getElementById('diet-count-label').textContent = '전체 0건';
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
   }
+  document.getElementById('diet-count-label').textContent = `전체 ${data.length}건`;
   const budgetLabel = { low: '저예산', mid: '중간', high: '고예산' };
-  tbody.innerHTML = data.map(d => `
+  tbody.innerHTML = data.map((d, i) => `
     <tr>
+      <td class="text-muted">${i + 1}</td>
       <td>${d.menu_name||'-'}</td>
       <td class="text-muted">${d.situation||'-'}</td>
       <td><span class="badge badge-gray">${budgetLabel[d.budget]||d.budget||'-'}</span></td>
@@ -905,11 +935,14 @@ async function loadSelfCheck() {
   const { data, error } = await q;
   const tbody = document.getElementById('sc-tbody');
   if (error || !data?.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
+    document.getElementById('sc-count-label').textContent = '전체 0건';
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
   }
+  document.getElementById('sc-count-label').textContent = `전체 ${data.length}건`;
   const sexLabel = { any: '공통', male: '남성', female: '여성' };
-  tbody.innerHTML = data.map(d => `
+  tbody.innerHTML = data.map((d, i) => `
     <tr>
+      <td class="text-muted">${i + 1}</td>
       <td><span class="badge badge-purple">${d.marker||'-'}</span></td>
       <td><span class="badge badge-gray">${sexLabel[d.sex]||d.sex||'-'}</span></td>
       <td class="text-muted">${d.age_min??'-'}~${d.age_max??'-'}세</td>
@@ -1024,10 +1057,13 @@ async function loadConfig() {
   const { data, error } = await sb.from('app_config').select('*').order('key');
   const tbody = document.getElementById('config-tbody');
   if (error || !data?.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="empty">${error ? '오류 발생' : '설정 없음'}</td></tr>`; return;
+    document.getElementById('config-count-label').textContent = '전체 0건';
+    tbody.innerHTML = `<tr><td colspan="5" class="empty">${error ? '오류 발생' : '설정 없음'}</td></tr>`; return;
   }
-  tbody.innerHTML = data.map(d => `
+  document.getElementById('config-count-label').textContent = `전체 ${data.length}건`;
+  tbody.innerHTML = data.map((d, i) => `
     <tr>
+      <td class="text-muted">${i + 1}</td>
       <td style="font-family:monospace;color:var(--accent)">${d.key}</td>
       <td style="font-family:monospace;font-size:12px;color:var(--muted)">${JSON.stringify(d.value)}</td>
       <td class="text-muted">${fmtDate(d.updated_at)}</td>
