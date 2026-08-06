@@ -384,11 +384,36 @@
         </table>
       </div>
       <div class="card">
-        <div class="card-header"><h3>최근 가입자</h3></div>
-        <table>
-          <thead><tr><th>닉네임</th><th>성별</th><th>나이</th><th>BMI</th><th>점수</th><th>가입일</th></tr></thead>
-          <tbody id="users-tbody"><tr><td colspan="6" class="loading">로딩 중...</td></tr></tbody>
+        <div class="card-header"><h3>최근 가입자 — 점수엔진 수치 전체</h3><span class="text-muted" style="font-size:12px">최근 20명 · 행 클릭 시 전체 상세</span></div>
+        <div style="overflow-x:auto">
+        <table style="min-width:1600px">
+          <thead><tr>
+            <th>#</th><th>닉네임</th><th>성별</th><th>나이</th><th>신체나이</th>
+            <th>PHIN점수</th><th>표시점수</th><th>티어</th>
+            <th>BMI</th><th>허리(cm)</th>
+            <th>흡연</th><th>흡연량/일</th><th>흡연년수</th><th>금연개월</th>
+            <th>음주</th><th>주당알코올(g)</th><th>금주개월</th>
+            <th>수면(h)</th><th>스트레스</th>
+            <th>운동일/주</th><th>운동분</th><th>CardioLv</th>
+            <th>식사유형</th><th>폭식패턴</th>
+            <th>혈압(수/이)</th><th>혈당</th><th>총콜레스테롤</th><th>LDL</th><th>HDL</th><th>중성지방</th>
+            <th>ALT</th><th>AST</th><th>GGT</th>
+            <th>OCR수</th><th>가입일</th>
+          </tr></thead>
+          <tbody id="users-tbody"><tr><td colspan="35" class="loading">로딩 중...</td></tr></tbody>
         </table>
+        </div>
+      </div>
+
+      <!-- 유저 상세 모달 -->
+      <div class="modal-overlay" id="modal-user-detail">
+        <div class="modal" style="width:680px">
+          <h3 id="user-detail-title">유저 상세</h3>
+          <div id="user-detail-content"></div>
+          <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal('modal-user-detail')">닫기</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1088,15 +1113,31 @@ async function deleteSelfCheck(id) {
 
 // ===== ⑤ 사용자 현황 =====
 async function loadUsers() {
-  const { data: profiles } = await sb.from('user_profiles').select('nickname, gender, birth_year, bmi, age, body_age, created_at, phin_score').order('created_at', { ascending: false }).limit(20);
+  const cols = [
+    'id','nickname','gender','birth_year','age','body_age',
+    'phin_score','displayed_score','percentile','bmi','waist_cm',
+    'smoking_status','cigarettes_per_day','smoking_years','quit_months',
+    'drinking_status','weekly_alcohol_grams','drinking_quit_months',
+    'sleep_hours','stress_level',
+    'exercise_days','exercise_minutes','cardio_level',
+    'eating_type','binge_pattern',
+    'systolic_bp','diastolic_bp','fasting_glucose',
+    'total_cholesterol','ldl','hdl','triglycerides',
+    'alt','ast','ggt','ocr_count','has_ocr',
+    'created_at'
+  ].join(',');
+
+  const { data: profiles, error } = await sb.from('user_profiles')
+    .select(cols).order('created_at', { ascending: false }).limit(20);
   const { count } = await sb.from('user_profiles').select('id', { count: 'exact', head: true });
 
   document.getElementById('stat-total').textContent = count ?? '-';
 
   if (profiles?.length) {
-    const avgScore = Math.round(profiles.reduce((a, p) => a + (p.phin_score || 0), 0) / profiles.length);
+    const scored = profiles.filter(p => p.phin_score != null);
+    const avgScore = scored.length ? Math.round(scored.reduce((a, p) => a + (p.phin_score || 0), 0) / scored.length) : '-';
     const avgAge = Math.round(profiles.reduce((a, p) => a + (p.body_age || p.age || 0), 0) / profiles.length);
-    document.getElementById('stat-avg').textContent = avgScore || '-';
+    document.getElementById('stat-avg').textContent = avgScore;
     document.getElementById('stat-age').textContent = avgAge ? avgAge + '세' : '-';
   }
 
@@ -1119,18 +1160,131 @@ async function loadUsers() {
   document.getElementById('tier-tbody').innerHTML = tierRows.join('');
   document.getElementById('stat-phin').textContent = (tierRows[0].match(/\d+명/) || ['-'])[0];
 
-  const genderLabel = { male: '남', female: '여' };
-  document.getElementById('users-tbody').innerHTML = (profiles || []).map(p => {
-    const age = p.age || (p.birth_year ? new Date().getFullYear() - p.birth_year : '-');
-    return `<tr>
-      <td>${p.nickname || '익명'}</td>
-      <td>${genderLabel[p.gender] || '-'}</td>
-      <td>${age}세</td>
-      <td>${p.bmi ? Number(p.bmi).toFixed(1) : '-'}</td>
-      <td><span class="badge badge-green">${p.phin_score ?? '-'}</span></td>
-      <td class="text-muted">${fmtDate(p.created_at)}</td>
+  const gL = { male:'남', female:'여' };
+  const smL = { never:'비흡연', current:'흡연중', quit:'금연', past:'과거흡연' };
+  const drL = { none:'금주', light:'가볍게', moderate:'보통', heavy:'많이' };
+
+  function tierBadge(score) {
+    if (score == null) return '<span class="badge badge-gray">미산출</span>';
+    if (score >= 100) return `<span class="badge badge-green">THE PHiN</span>`;
+    if (score >= 95) return `<span class="badge badge-gray">BLACK</span>`;
+    if (score >= 80) return `<span class="badge badge-green">GREEN</span>`;
+    if (score >= 65) return `<span class="badge badge-purple">BLUE</span>`;
+    if (score >= 50) return `<span class="badge badge-warn">YELLOW</span>`;
+    if (score >= 35) return `<span class="badge badge-red">RED</span>`;
+    return `<span class="badge badge-gray">GRAY</span>`;
+  }
+  function v(val, unit='') { return val != null ? val + unit : '<span class="text-muted">-</span>'; }
+  function scoreCell(s) {
+    if (s == null) return '<span class="text-muted">-</span>';
+    const cls = s >= 80 ? 'badge-green' : s >= 65 ? 'badge-purple' : s >= 50 ? 'badge-warn' : 'badge-red';
+    return `<span class="badge ${cls}">${s}</span>`;
+  }
+
+  document.getElementById('users-tbody').innerHTML = (profiles || []).map((p, i) => {
+    const age = p.age || (p.birth_year ? new Date().getFullYear() - p.birth_year : null);
+    return `<tr style="cursor:pointer" onclick="showUserDetail('${p.id}')">
+      <td class="text-muted">${i+1}</td>
+      <td>${p.nickname||'익명'}</td>
+      <td>${gL[p.gender]||'-'}</td>
+      <td>${v(age,'세')}</td>
+      <td>${v(p.body_age,'세')}</td>
+      <td>${scoreCell(p.phin_score)}</td>
+      <td>${scoreCell(p.displayed_score)}</td>
+      <td>${tierBadge(p.phin_score)}</td>
+      <td>${p.bmi ? Number(p.bmi).toFixed(1) : '<span class="text-muted">-</span>'}</td>
+      <td>${v(p.waist_cm,'cm')}</td>
+      <td>${smL[p.smoking_status]||v(p.smoking_status)}</td>
+      <td>${v(p.cigarettes_per_day,'개')}</td>
+      <td>${v(p.smoking_years,'년')}</td>
+      <td>${v(p.quit_months,'개월')}</td>
+      <td>${drL[p.drinking_status]||v(p.drinking_status)}</td>
+      <td>${v(p.weekly_alcohol_grams,'g')}</td>
+      <td>${v(p.drinking_quit_months,'개월')}</td>
+      <td>${v(p.sleep_hours,'h')}</td>
+      <td>${v(p.stress_level)}</td>
+      <td>${v(p.exercise_days,'일')}</td>
+      <td>${v(p.exercise_minutes,'분')}</td>
+      <td>${v(p.cardio_level)}</td>
+      <td>${v(p.eating_type)}</td>
+      <td>${v(p.binge_pattern)}</td>
+      <td>${p.systolic_bp&&p.diastolic_bp ? p.systolic_bp+'/'+p.diastolic_bp : '<span class="text-muted">-</span>'}</td>
+      <td>${v(p.fasting_glucose)}</td>
+      <td>${v(p.total_cholesterol)}</td>
+      <td>${v(p.ldl)}</td>
+      <td>${v(p.hdl)}</td>
+      <td>${v(p.triglycerides)}</td>
+      <td>${v(p.alt)}</td>
+      <td>${v(p.ast)}</td>
+      <td>${v(p.ggt)}</td>
+      <td>${v(p.ocr_count)}</td>
+      <td class="text-muted" style="white-space:nowrap">${fmtDate(p.created_at)}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="6" class="empty">데이터 없음</td></tr>';
+  }).join('') || '<tr><td colspan="35" class="empty">데이터 없음</td></tr>';
+}
+
+async function showUserDetail(uid) {
+  const { data: p } = await sb.from('user_profiles').select('*').eq('id', uid).single();
+  if (!p) return;
+  const gL = { male:'남성', female:'여성' };
+  const smL = { never:'비흡연', current:'흡연중', quit:'금연', past:'과거흡연' };
+  const drL = { none:'금주', light:'가볍게', moderate:'보통', heavy:'많이' };
+  document.getElementById('user-detail-title').textContent = (p.nickname||'익명') + ' — 상세';
+  document.getElementById('user-detail-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+      <div class="card" style="padding:14px">
+        <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">📊 점수</div>
+        <div>PHIN점수: <b>${p.phin_score??'-'}</b></div>
+        <div>표시점수: <b>${p.displayed_score??'-'}</b></div>
+        <div>백분위: <b>${p.percentile??'-'}</b></div>
+        <div>신체나이: <b>${p.body_age??'-'}세</b></div>
+        <div>OCR 수: <b>${p.ocr_count??'-'}</b></div>
+      </div>
+      <div class="card" style="padding:14px">
+        <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">👤 기본</div>
+        <div>성별: <b>${gL[p.gender]||'-'}</b></div>
+        <div>나이: <b>${p.age??'-'}세</b></div>
+        <div>BMI: <b>${p.bmi?Number(p.bmi).toFixed(1):'-'}</b></div>
+        <div>허리둘레: <b>${p.waist_cm??'-'}cm</b></div>
+        <div>MBTI: <b>${p.mbti||'-'}</b></div>
+      </div>
+      <div class="card" style="padding:14px">
+        <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">🚬 흡연·음주</div>
+        <div>흡연: <b>${smL[p.smoking_status]||'-'}</b></div>
+        <div>흡연량: <b>${p.cigarettes_per_day??'-'}개/일</b></div>
+        <div>흡연기간: <b>${p.smoking_years??'-'}년</b></div>
+        <div>금연: <b>${p.quit_months??'-'}개월</b></div>
+        <div>음주: <b>${drL[p.drinking_status]||'-'}</b></div>
+        <div>주당알코올: <b>${p.weekly_alcohol_grams??'-'}g</b></div>
+        <div>금주: <b>${p.drinking_quit_months??'-'}개월</b></div>
+      </div>
+      <div class="card" style="padding:14px">
+        <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">🏃 생활습관</div>
+        <div>수면: <b>${p.sleep_hours??'-'}h</b></div>
+        <div>스트레스: <b>${p.stress_level??'-'}</b></div>
+        <div>운동일/주: <b>${p.exercise_days??'-'}일</b></div>
+        <div>운동분: <b>${p.exercise_minutes??'-'}분</b></div>
+        <div>CardioLv: <b>${p.cardio_level??'-'}</b></div>
+        <div>식사유형: <b>${p.eating_type??'-'}</b></div>
+        <div>폭식패턴: <b>${p.binge_pattern??'-'}</b></div>
+      </div>
+      <div class="card" style="padding:14px;grid-column:span 2">
+        <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">🩺 혈액·검진 수치</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <div>혈압: <b>${p.systolic_bp&&p.diastolic_bp?p.systolic_bp+'/'+p.diastolic_bp:'-'}</b></div>
+          <div>공복혈당: <b>${p.fasting_glucose??'-'}</b></div>
+          <div>총콜레스테롤: <b>${p.total_cholesterol??'-'}</b></div>
+          <div>LDL: <b>${p.ldl??'-'}</b></div>
+          <div>HDL: <b>${p.hdl??'-'}</b></div>
+          <div>중성지방: <b>${p.triglycerides??'-'}</b></div>
+          <div>ALT: <b>${p.alt??'-'}</b></div>
+          <div>AST: <b>${p.ast??'-'}</b></div>
+          <div>GGT: <b>${p.ggt??'-'}</b></div>
+        </div>
+      </div>
+    </div>
+  `;
+  openModal('modal-user-detail');
 }
 
 // ===== ⑥ 앱 설정 =====
