@@ -386,9 +386,9 @@
       <div class="card">
         <div class="card-header"><h3>최근 가입자 — 점수엔진 수치 전체</h3><span class="text-muted" style="font-size:12px">최근 20명 · 행 클릭 시 전체 상세</span></div>
         <div style="overflow-x:auto">
-        <table style="min-width:1600px">
+        <table style="min-width:1800px">
           <thead><tr>
-            <th>#</th><th>닉네임</th><th>성별</th><th>나이</th><th>신체나이</th>
+            <th>#</th><th>닉네임</th><th>이메일</th><th>성별</th><th>나이</th><th>신체나이</th>
             <th>PHIN점수</th><th>표시점수</th><th>티어</th>
             <th>BMI</th><th>허리(cm)</th>
             <th>흡연</th><th>흡연량/일</th><th>흡연년수</th><th>금연개월</th>
@@ -400,7 +400,7 @@
             <th>ALT</th><th>AST</th><th>GGT</th>
             <th>OCR수</th><th>가입일</th>
           </tr></thead>
-          <tbody id="users-tbody"><tr><td colspan="35" class="loading">로딩 중...</td></tr></tbody>
+          <tbody id="users-tbody"><tr><td colspan="36" class="loading">로딩 중...</td></tr></tbody>
         </table>
         </div>
       </div>
@@ -1114,7 +1114,7 @@ async function deleteSelfCheck(id) {
 // ===== ⑤ 사용자 현황 =====
 async function loadUsers() {
   const cols = [
-    'id','nickname','gender','birth_year','age','body_age',
+    'id','nickname','email','gender','birth_year','age','body_age',
     'phin_score','displayed_score','percentile','bmi','waist_cm',
     'smoking_status','cigarettes_per_day','smoking_years','quit_months',
     'drinking_status','weekly_alcohol_grams','drinking_quit_months',
@@ -1186,6 +1186,7 @@ async function loadUsers() {
     return `<tr style="cursor:pointer" onclick="showUserDetail('${p.id}')">
       <td class="text-muted">${i+1}</td>
       <td>${p.nickname||'익명'}</td>
+      <td class="text-muted" style="font-size:12px">${p.email||'-'}</td>
       <td>${gL[p.gender]||'-'}</td>
       <td>${v(age,'세')}</td>
       <td>${v(p.body_age,'세')}</td>
@@ -1220,7 +1221,7 @@ async function loadUsers() {
       <td>${v(p.ocr_count)}</td>
       <td class="text-muted" style="white-space:nowrap">${fmtDate(p.created_at)}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="35" class="empty">데이터 없음</td></tr>';
+  }).join('') || '<tr><td colspan="36" class="empty">데이터 없음</td></tr>';
 }
 
 async function showUserDetail(uid) {
