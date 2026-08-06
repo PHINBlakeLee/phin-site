@@ -1230,57 +1230,159 @@ async function showUserDetail(uid) {
   const gL = { male:'남성', female:'여성' };
   const smL = { never:'비흡연', current:'흡연중', quit:'금연', past:'과거흡연' };
   const drL = { none:'금주', light:'가볍게', moderate:'보통', heavy:'많이' };
+
+  // ── 색상 판정 함수 (점수엔진 v8 위험단위 기준) ──
+  // 반환: 인라인 style 문자열
+  function clr(val, thresholds) {
+    // thresholds: [{max, color}] — 낮을수록 좋은 경우
+    // color: 'green'|'yellow'|'orange'|'red'
+    if (val == null) return 'color:var(--muted)';
+    const map = { green:'#00c896', yellow:'#f5a623', orange:'#ff8c42', red:'#ff4f4f' };
+    for (const t of thresholds) {
+      if (val <= t.max) return `color:${map[t.color]};font-weight:700`;
+    }
+    return `color:${map['red']};font-weight:700`;
+  }
+  function clrHigh(val, thresholds) {
+    // 높을수록 좋은 경우 (HDL 등)
+    if (val == null) return 'color:var(--muted)';
+    const map = { green:'#00c896', yellow:'#f5a623', orange:'#ff8c42', red:'#ff4f4f' };
+    for (const t of thresholds) {
+      if (val >= t.min) return `color:${map[t.color]};font-weight:700`;
+    }
+    return `color:#ff4f4f;font-weight:700`;
+  }
+
+  // BMI: <18.5 저체중(노랑), 18.5~24.9 정상(초록), 25~29.9 과체중(노랑), 30~34.9 비만(주황), 35+ 고도비만(빨강)
+  const bmiFn = (v) => {
+    if (v == null) return 'color:var(--muted)';
+    const map = { green:'#00c896', yellow:'#f5a623', orange:'#ff8c42', red:'#ff4f4f' };
+    if (v < 18.5) return `color:${map.yellow};font-weight:700`;
+    if (v < 25)   return `color:${map.green};font-weight:700`;
+    if (v < 30)   return `color:${map.yellow};font-weight:700`;
+    if (v < 35)   return `color:${map.orange};font-weight:700`;
+    return `color:${map.red};font-weight:700`;
+  };
+  // 허리둘레: 남 <90 정상, 90~99 주의, 100+ 위험 / 여 <85 정상, 85~94 주의, 95+ 위험
+  const waistFn = (v, gender) => {
+    if (v == null) return 'color:var(--muted)';
+    const [ok, warn] = gender === 'female' ? [85, 95] : [90, 100];
+    if (v < ok)   return 'color:#00c896;font-weight:700';
+    if (v < warn) return 'color:#f5a623;font-weight:700';
+    return 'color:#ff4f4f;font-weight:700';
+  };
+  // 수면: 7~8.5 정상, 6~8.9 주의, <6 또는 >9 위험
+  const sleepFn = (v) => {
+    if (v == null) return 'color:var(--muted)';
+    if (v >= 7 && v <= 8.5) return 'color:#00c896;font-weight:700';
+    if (v >= 6 && v <= 9)   return 'color:#f5a623;font-weight:700';
+    return 'color:#ff4f4f;font-weight:700';
+  };
+  // 스트레스: 1 정상, 2 주의, 3 위험, 4 매우위험
+  const stressFn = (v) => clr(v, [{max:1,color:'green'},{max:2,color:'yellow'},{max:3,color:'orange'}]);
+  // 흡연 상태
+  const smokeFn = (s) => {
+    if (!s) return 'color:var(--muted)';
+    if (s === 'never') return 'color:#00c896;font-weight:700';
+    if (s === 'quit')  return 'color:#f5a623;font-weight:700';
+    return 'color:#ff4f4f;font-weight:700';
+  };
+  // 흡연량(개/일): 0 정상, 1~9 주의, 10~19 위험, 20+ 매우위험
+  const cigFn = (v) => clr(v, [{max:0,color:'green'},{max:9,color:'yellow'},{max:19,color:'orange'}]);
+  // 주당 알코올(g): <70 정상, 70~139 주의, 140~224 위험, 225+ 매우위험
+  const alcFn = (v) => clr(v, [{max:69,color:'green'},{max:139,color:'yellow'},{max:224,color:'orange'}]);
+  // 운동일/주: 5+ 최고, 3~4 좋음, 1~2 주의, 0 위험
+  const exFn = (v) => clrHigh(v, [{min:5,color:'green'},{min:3,color:'yellow'},{min:1,color:'orange'}]);
+  // 혈압(수축기): <120 정상, 120~139 주의, 140~159 위험, 160+ 매우위험
+  const bpFn = (v) => clr(v, [{max:119,color:'green'},{max:139,color:'yellow'},{max:159,color:'orange'}]);
+  // 공복혈당: <100 정상, 100~125 주의, 126~149 위험, 150+ 매우위험
+  const glucFn = (v) => clr(v, [{max:99,color:'green'},{max:125,color:'yellow'},{max:149,color:'orange'}]);
+  // 총콜레스테롤: <200 정상, 200~239 주의, 240~279 위험, 280+ 매우위험
+  const tcFn = (v) => clr(v, [{max:199,color:'green'},{max:239,color:'yellow'},{max:279,color:'orange'}]);
+  // LDL: <130 정상, 130~159 주의, 160~189 위험, 190+ 매우위험
+  const ldlFn = (v) => clr(v, [{max:129,color:'green'},{max:159,color:'yellow'},{max:189,color:'orange'}]);
+  // HDL: 60+ 정상, 40~59 주의, <40 위험 (높을수록 좋음)
+  const hdlFn = (v) => clrHigh(v, [{min:60,color:'green'},{min:40,color:'yellow'}]);
+  // 중성지방: <150 정상, 150~199 주의, 200~499 위험, 500+ 매우위험
+  const tgFn = (v) => clr(v, [{max:149,color:'green'},{max:199,color:'yellow'},{max:499,color:'orange'}]);
+  // ALT/AST: <40 정상, 40~79 주의, 80+ 위험
+  const altFn = (v) => clr(v, [{max:39,color:'green'},{max:79,color:'yellow'}]);
+  // GGT: <50 정상, 50~99 주의, 100+ 위험
+  const ggtFn = (v) => clr(v, [{max:49,color:'green'},{max:99,color:'yellow'}]);
+  // PHIN 점수 색상
+  const scoreFn = (v) => {
+    if (v == null) return 'color:var(--muted)';
+    if (v >= 80) return 'color:#00c896;font-weight:700';
+    if (v >= 65) return 'color:#6c63ff;font-weight:700';
+    if (v >= 50) return 'color:#f5a623;font-weight:700';
+    return 'color:#ff4f4f;font-weight:700';
+  };
+
+  function row(label, val, styleFn, unit='') {
+    const display = val != null ? val + unit : '-';
+    const style = styleFn ? styleFn(val) : '';
+    return `<div style="margin-bottom:5px">${label}: <b style="${style}">${display}</b></div>`;
+  }
+
+  const bmi = p.bmi ? Number(p.bmi).toFixed(1) : null;
+  const bp = p.systolic_bp && p.diastolic_bp ? `${p.systolic_bp}/${p.diastolic_bp}` : null;
+
   document.getElementById('user-detail-title').textContent = (p.nickname||'익명') + ' — 상세';
   document.getElementById('user-detail-content').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
       <div class="card" style="padding:14px">
         <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">📊 점수</div>
-        <div>PHIN점수: <b>${p.phin_score??'-'}</b></div>
-        <div>표시점수: <b>${p.displayed_score??'-'}</b></div>
-        <div>백분위: <b>${p.percentile??'-'}</b></div>
-        <div>신체나이: <b>${p.body_age??'-'}세</b></div>
-        <div>OCR 수: <b>${p.ocr_count??'-'}</b></div>
+        <div style="margin-bottom:5px">PHIN점수: <b style="${scoreFn(p.phin_score)}">${p.phin_score??'-'}</b></div>
+        <div style="margin-bottom:5px">표시점수: <b style="${scoreFn(p.displayed_score)}">${p.displayed_score??'-'}</b></div>
+        <div style="margin-bottom:5px">백분위: <b>${p.percentile??'-'}</b></div>
+        <div style="margin-bottom:5px">신체나이: <b style="${p.body_age&&p.age&&p.body_age>p.age+5?'color:#ff4f4f;font-weight:700':p.body_age&&p.age&&p.body_age<p.age-2?'color:#00c896;font-weight:700':''}">${p.body_age??'-'}세</b></div>
+        <div style="margin-bottom:5px">OCR 수: <b style="${p.ocr_count>0?'color:#00c896;font-weight:700':'color:#f5a623;font-weight:700'}">${p.ocr_count??0}</b></div>
       </div>
       <div class="card" style="padding:14px">
         <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">👤 기본</div>
-        <div>성별: <b>${gL[p.gender]||'-'}</b></div>
-        <div>나이: <b>${p.age??'-'}세</b></div>
-        <div>BMI: <b>${p.bmi?Number(p.bmi).toFixed(1):'-'}</b></div>
-        <div>허리둘레: <b>${p.waist_cm??'-'}cm</b></div>
-        <div>MBTI: <b>${p.mbti||'-'}</b></div>
+        <div style="margin-bottom:5px">성별: <b>${gL[p.gender]||'-'}</b></div>
+        <div style="margin-bottom:5px">나이: <b>${p.age??'-'}세</b></div>
+        <div style="margin-bottom:5px">키: <b>${p.height??'-'}cm</b></div>
+        <div style="margin-bottom:5px">체중: <b>${p.weight??'-'}kg</b></div>
+        <div style="margin-bottom:5px">BMI: <b style="${bmiFn(bmi?parseFloat(bmi):null)}">${bmi??'-'}</b></div>
+        <div style="margin-bottom:5px">허리둘레: <b style="${waistFn(p.waist_cm,p.gender)}">${p.waist_cm??'-'}cm</b></div>
+        <div style="margin-bottom:5px">MBTI: <b>${p.mbti||'-'}</b></div>
       </div>
       <div class="card" style="padding:14px">
         <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">🚬 흡연·음주</div>
-        <div>흡연: <b>${smL[p.smoking_status]||'-'}</b></div>
-        <div>흡연량: <b>${p.cigarettes_per_day??'-'}개/일</b></div>
-        <div>흡연기간: <b>${p.smoking_years??'-'}년</b></div>
-        <div>금연: <b>${p.quit_months??'-'}개월</b></div>
-        <div>음주: <b>${drL[p.drinking_status]||'-'}</b></div>
-        <div>주당알코올: <b>${p.weekly_alcohol_grams??'-'}g</b></div>
-        <div>금주: <b>${p.drinking_quit_months??'-'}개월</b></div>
+        <div style="margin-bottom:5px">흡연: <b style="${smokeFn(p.smoking_status)}">${smL[p.smoking_status]||'-'}</b></div>
+        ${row('흡연량', p.cigarettes_per_day, cigFn, '개/일')}
+        ${row('흡연기간', p.smoking_years, null, '년')}
+        ${row('금연', p.quit_months, null, '개월')}
+        <div style="margin-bottom:5px">음주: <b style="${p.drinking_status==='none'?'color:#00c896;font-weight:700':p.drinking_status==='heavy'?'color:#ff4f4f;font-weight:700':p.drinking_status?'color:#f5a623;font-weight:700':''}">${drL[p.drinking_status]||'-'}</b></div>
+        ${row('주당알코올', p.weekly_alcohol_grams, alcFn, 'g')}
+        ${row('금주', p.drinking_quit_months, null, '개월')}
       </div>
       <div class="card" style="padding:14px">
         <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">🏃 생활습관</div>
-        <div>수면: <b>${p.sleep_hours??'-'}h</b></div>
-        <div>스트레스: <b>${p.stress_level??'-'}</b></div>
-        <div>운동일/주: <b>${p.exercise_days??'-'}일</b></div>
-        <div>운동분: <b>${p.exercise_minutes??'-'}분</b></div>
-        <div>CardioLv: <b>${p.cardio_level??'-'}</b></div>
-        <div>식사유형: <b>${p.eating_type??'-'}</b></div>
-        <div>폭식패턴: <b>${p.binge_pattern??'-'}</b></div>
+        ${row('수면', p.sleep_hours, sleepFn, 'h')}
+        ${row('스트레스', p.stress_level, stressFn)}
+        ${row('운동일/주', p.exercise_days, exFn, '일')}
+        ${row('운동분', p.exercise_minutes, null, '분')}
+        ${row('CardioLv', p.cardio_level, null)}
+        <div style="margin-bottom:5px">식사유형: <b>${p.eating_type||'-'}</b></div>
+        <div style="margin-bottom:5px">폭식패턴: <b style="${p.binge_pattern&&p.binge_pattern!=='none'?'color:#ff4f4f;font-weight:700':'color:#00c896;font-weight:700'}">${p.binge_pattern||'-'}</b></div>
       </div>
       <div class="card" style="padding:14px;grid-column:span 2">
         <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">🩺 혈액·검진 수치</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-          <div>혈압: <b>${p.systolic_bp&&p.diastolic_bp?p.systolic_bp+'/'+p.diastolic_bp:'-'}</b></div>
-          <div>공복혈당: <b>${p.fasting_glucose??'-'}</b></div>
-          <div>총콜레스테롤: <b>${p.total_cholesterol??'-'}</b></div>
-          <div>LDL: <b>${p.ldl??'-'}</b></div>
-          <div>HDL: <b>${p.hdl??'-'}</b></div>
-          <div>중성지방: <b>${p.triglycerides??'-'}</b></div>
-          <div>ALT: <b>${p.alt??'-'}</b></div>
-          <div>AST: <b>${p.ast??'-'}</b></div>
-          <div>GGT: <b>${p.ggt??'-'}</b></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+          <div>혈압: <b style="${bpFn(p.systolic_bp)}">${bp??'-'}</b></div>
+          <div>공복혈당: <b style="${glucFn(p.fasting_glucose)}">${p.fasting_glucose??'-'}</b></div>
+          <div>총콜레스테롤: <b style="${tcFn(p.total_cholesterol)}">${p.total_cholesterol??'-'}</b></div>
+          <div>LDL: <b style="${ldlFn(p.ldl)}">${p.ldl??'-'}</b></div>
+          <div>HDL: <b style="${hdlFn(p.hdl)}">${p.hdl??'-'}</b></div>
+          <div>중성지방: <b style="${tgFn(p.triglycerides)}">${p.triglycerides??'-'}</b></div>
+          <div>ALT: <b style="${altFn(p.alt)}">${p.alt??'-'}</b></div>
+          <div>AST: <b style="${altFn(p.ast)}">${p.ast??'-'}</b></div>
+          <div>GGT: <b style="${ggtFn(p.ggt)}">${p.ggt??'-'}</b></div>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--muted)">
+          🟢 정상 &nbsp; 🟡 주의 &nbsp; 🟠 위험 &nbsp; 🔴 매우위험
         </div>
       </div>
     </div>
