@@ -411,6 +411,7 @@
           <h3 id="user-detail-title">유저 상세</h3>
           <div id="user-detail-content"></div>
           <div class="modal-actions">
+            <button class="btn btn-danger" onclick="confirmDeleteUser()">🗑 앱 데이터 삭제</button>
             <button class="btn btn-ghost" onclick="closeModal('modal-user-detail')">닫기</button>
           </div>
         </div>
@@ -662,6 +663,7 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentFeedbackId = null;
+let _currentDetailUid = null;
 
 // ===== AUTH =====
 async function doLogin() {
@@ -1225,6 +1227,7 @@ async function loadUsers() {
 }
 
 async function showUserDetail(uid) {
+  _currentDetailUid = uid;
   const { data: p } = await sb.from('user_profiles').select('*').eq('id', uid).single();
   if (!p) return;
   const gL = { male:'남성', female:'여성' };
@@ -1388,6 +1391,89 @@ async function showUserDetail(uid) {
     </div>
   `;
   openModal('modal-user-detail');
+}
+
+let _deleteTargetUid = null;
+let _deleteTargetName = null;
+
+function confirmDeleteUser() {
+  const title = document.getElementById('user-detail-title').textContent;
+  _deleteTargetName = title.replace(' — 상세', '');
+  _deleteTargetUid = _currentDetailUid;
+  if (!_deleteTargetUid) { toast('유저 ID를 찾을 수 없습니다'); return; }
+
+  // 1차 확인
+  const ok1 = confirm(
+    `⚠️ [1차 확인]\n\n` +
+    `"${_deleteTargetName}" 계정의 앱 데이터를 삭제합니다.\n\n` +
+    `• user_profiles 및 모든 관련 데이터가 삭제됩니다.\n` +
+    `• auth 계정은 유지됩니다 (Supabase 콘솔에서 별도 삭제).\n` +
+    `• 이 작업은 되돌릴 수 없습니다.\n\n` +
+    `계속하시겠습니까?`
+  );
+  if (!ok1) return;
+
+  // 2차 확인 — 닉네임 직접 입력
+  const typed = prompt(
+    `⛔ [2차 확인 — 최종]\n\n` +
+    `정말 삭제하려면 아래 칸에 닉네임을 정확히 입력하세요:\n\n` +
+    `닉네임: ${_deleteTargetName}`
+  );
+  if (typed === null) return; // 취소
+  if (typed.trim() !== _deleteTargetName) {
+    alert('닉네임이 일치하지 않습니다. 삭제가 취소되었습니다.');
+    return;
+  }
+
+  deleteUserData(_deleteTargetUid, _deleteTargetName);
+}
+
+async function deleteUserData(uid, name) {
+  closeModal('modal-user-detail');
+  toast('삭제 중...', 5000);
+
+  // 의존 순서대로 삭제 (FK 제약 고려)
+  const tables = [
+    { table: 'self_check_log',          col: 'user_id' },
+    { table: 'feedback_votes',          col: 'user_id' },
+    { table: 'feedback',                col: 'user_id' },
+    { table: 'daily_cycle_log',         col: 'user_id' },
+    { table: 'daily_activity',          col: 'user_id' },
+    { table: 'exercise_logs',           col: 'user_id' },
+    { table: 'calorie_logs',            col: 'user_id' },
+    { table: 'health_records',          col: 'user_id' },
+    { table: 'health_scores',           col: 'user_id' },
+    { table: 'health_vitals',           col: 'user_id' },
+    { table: 'health_predictions',      col: 'user_id' },
+    { table: 'body_status_cache',       col: 'user_id' },
+    { table: 'reports',                 col: 'user_id' },
+    { table: 'saved_contents',          col: 'user_id' },
+    { table: 'gpt_usage_log',           col: 'user_id' },
+    { table: 'web_sessions',            col: 'user_id' },
+    { table: 'family_history',          col: 'user_id' },
+    { table: 'lifestyle',               col: 'user_id' },
+    { table: 'onboarding_step2',        col: 'user_id' },
+    { table: 'custom_keywords',         col: 'user_id' },
+    { table: 'phin_score_detail',       col: 'user_id' },
+    { table: 'user_profiles',           col: 'id'      },
+  ];
+
+  const errors = [];
+  for (const { table, col } of tables) {
+    const { error } = await sb.from(table).delete().eq(col, uid);
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = 0 rows affected (테이블에 데이터 없음 — 정상)
+      errors.push(`${table}: ${error.message}`);
+    }
+  }
+
+  if (errors.length > 0) {
+    toast(`일부 오류: ${errors[0]}`, 5000);
+    console.error('deleteUserData errors:', errors);
+  } else {
+    toast(`✓ "${name}" 앱 데이터 삭제 완료`);
+  }
+  loadUsers(); // 목록 갱신
 }
 
 // ===== ⑥ 앱 설정 =====
