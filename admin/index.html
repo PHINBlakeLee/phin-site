@@ -221,7 +221,7 @@
       <span class="nav-icon">📋</span> 피드백 관리
     </div>
     <div class="nav-item" onclick="showPage('contents')" id="nav-contents">
-      <span class="nav-icon">💬</span> 격언·팁·사자성어
+      <span class="nav-icon">💬</span> 콘텐츠 관리
     </div>
     <div class="nav-item" onclick="showPage('diet')" id="nav-diet">
       <span class="nav-icon">🥗</span> 식단·조리법
@@ -278,17 +278,17 @@
       </div>
     </div>
 
-    <!-- ② 격언·팁·사자성어 -->
+    <!-- ② 콘텐츠 관리 -->
     <div class="page" id="page-contents">
-      <div class="page-title">💬 격언·팁·사자성어</div>
-      <div class="page-sub">daily_contents 테이블 관리</div>
+      <div class="page-title">💬 콘텐츠 관리</div>
+      <div class="page-sub">daily_contents 테이블 — 격언·사자성어·건강팁·운동법 통합 관리</div>
       <div class="filters">
         <select id="dc-filter-type" onchange="loadContents()">
           <option value="">전체 유형</option>
-          <option value="quote">격언</option>
-          <option value="tip">팁</option>
-          <option value="saying">사자성어</option>
-          <option value="exercise">운동법</option>
+          <option value="quote">📜 격언</option>
+          <option value="idiom">🈲 사자성어</option>
+          <option value="health">💊 건강팁</option>
+          <option value="exercise">🏋️ 운동법</option>
         </select>
         <button class="btn btn-accent" onclick="openContentsModal()">+ 새로 추가</button>
       </div>
@@ -297,9 +297,9 @@
         <table>
           <thead><tr>
             <th>#</th><th>유형</th><th>카테고리</th><th>제목(main)</th><th>부제(sub)</th>
-            <th>본문</th><th>출처</th><th>날짜</th><th>액션</th>
+            <th>본문</th><th>출처</th><th>영문</th><th>날짜</th><th>액션</th>
           </tr></thead>
-          <tbody id="dc-tbody"><tr><td colspan="9" class="loading">로딩 중...</td></tr></tbody>
+          <tbody id="dc-tbody"><tr><td colspan="10" class="loading">로딩 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -466,16 +466,16 @@
 <!-- 콘텐츠 추가/수정 모달 -->
 <div class="modal-overlay" id="modal-contents">
   <div class="modal">
-    <h3 id="contents-modal-title">격언·팁·사자성어 추가</h3>
+    <h3 id="contents-modal-title">콘텐츠 추가</h3>
     <input type="hidden" id="contents-edit-id">
     <div class="form-grid-2">
       <div class="form-row">
         <label>유형 *</label>
         <select id="dc-type">
-          <option value="quote">격언</option>
-          <option value="tip">팁</option>
-          <option value="saying">사자성어</option>
-          <option value="exercise">운동법</option>
+          <option value="quote">📜 격언</option>
+          <option value="idiom">🈲 사자성어</option>
+          <option value="health">💊 건강팁</option>
+          <option value="exercise">🏋️ 운동법</option>
         </select>
       </div>
       <div class="form-row">
@@ -485,19 +485,36 @@
     </div>
     <div class="form-row">
       <label>제목 (main) *</label>
-      <input id="dc-main" placeholder="격언 제목 또는 사자성어">
+      <input id="dc-main" placeholder="격언 제목 또는 사자성어 (한국어)">
     </div>
     <div class="form-row">
       <label>부제 (sub)</label>
-      <input id="dc-sub" placeholder="한줄 해석 또는 부제">
+      <input id="dc-sub" placeholder="한줄 해석 또는 부제 (한국어)">
     </div>
     <div class="form-row">
       <label>본문 (body)</label>
-      <textarea id="dc-body" placeholder="상세 설명 또는 해설"></textarea>
+      <textarea id="dc-body" placeholder="상세 설명 또는 해설 (한국어)"></textarea>
     </div>
     <div class="form-row">
       <label>출처 (source)</label>
       <input id="dc-source" placeholder="예: 논어, WHO, 아리스토텔레스">
+    </div>
+    <div style="margin:14px 0 8px;font-size:12px;font-weight:700;color:var(--accent2)">🌐 영문 (선택)</div>
+    <div class="form-row">
+      <label>제목 영문 (main_en)</label>
+      <input id="dc-main-en" placeholder="English title">
+    </div>
+    <div class="form-row">
+      <label>부제 영문 (sub_en)</label>
+      <input id="dc-sub-en" placeholder="English subtitle">
+    </div>
+    <div class="form-row">
+      <label>본문 영문 (body_en)</label>
+      <textarea id="dc-body-en" placeholder="English description"></textarea>
+    </div>
+    <div class="form-row">
+      <label>출처 영문 (source_en)</label>
+      <input id="dc-source-en" placeholder="e.g. Analects, WHO, Aristotle">
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-contents')">취소</button>
@@ -845,18 +862,20 @@ async function loadContents() {
   const tbody = document.getElementById('dc-tbody');
   if (error || !data?.length) {
     document.getElementById('dc-count-label').textContent = '전체 0건';
-    tbody.innerHTML = `<tr><td colspan="9" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
   }
   document.getElementById('dc-count-label').textContent = `전체 ${data.length}건`;
+  const typeLabel = { quote:'📜 격언', idiom:'🈲 사자성어', health:'💊 건강팁', exercise:'🏋️ 운동법' };
   tbody.innerHTML = data.map((d, i) => `
     <tr>
       <td class="text-muted">${i + 1}</td>
-      <td><span class="badge badge-purple">${d.type||'-'}</span></td>
+      <td><span class="badge badge-purple">${typeLabel[d.type]||d.type||'-'}</span></td>
       <td class="text-muted">${d.category||'-'}</td>
       <td class="text-clamp">${d.main||'-'}</td>
       <td class="text-clamp text-muted">${d.sub||'-'}</td>
       <td class="text-clamp text-muted">${d.body||'-'}</td>
       <td class="text-muted">${d.source||'-'}</td>
+      <td><span class="badge ${d.main_en?'badge-green':'badge-gray'}">${d.main_en?'있음':'-'}</span></td>
       <td class="text-muted">${fmtDate(d.created_at)}</td>
       <td>
         <div class="flex-gap">
@@ -869,7 +888,7 @@ async function loadContents() {
 }
 
 function openContentsModal(d = null) {
-  document.getElementById('contents-modal-title').textContent = d ? '콘텐츠 수정' : '격언·팁·사자성어 추가';
+  document.getElementById('contents-modal-title').textContent = d ? '콘텐츠 수정' : '콘텐츠 추가';
   document.getElementById('contents-edit-id').value = d?.id || '';
   document.getElementById('dc-type').value = d?.type || 'quote';
   document.getElementById('dc-category').value = d?.category || '';
@@ -877,6 +896,10 @@ function openContentsModal(d = null) {
   document.getElementById('dc-sub').value = d?.sub || '';
   document.getElementById('dc-body').value = d?.body || '';
   document.getElementById('dc-source').value = d?.source || '';
+  document.getElementById('dc-main-en').value = d?.main_en || '';
+  document.getElementById('dc-sub-en').value = d?.sub_en || '';
+  document.getElementById('dc-body-en').value = d?.body_en || '';
+  document.getElementById('dc-source-en').value = d?.source_en || '';
   openModal('modal-contents');
 }
 
@@ -894,6 +917,10 @@ async function saveContents() {
     sub: document.getElementById('dc-sub').value.trim() || null,
     body: document.getElementById('dc-body').value.trim() || null,
     source: document.getElementById('dc-source').value.trim() || null,
+    main_en: document.getElementById('dc-main-en').value.trim() || null,
+    sub_en: document.getElementById('dc-sub-en').value.trim() || null,
+    body_en: document.getElementById('dc-body-en').value.trim() || null,
+    source_en: document.getElementById('dc-source-en').value.trim() || null,
   };
   if (!payload.main) { toast('제목을 입력하세요'); return; }
   const { error } = id
