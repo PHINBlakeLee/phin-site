@@ -221,7 +221,10 @@
       <span class="nav-icon">📋</span> 피드백 관리
     </div>
     <div class="nav-item" onclick="showPage('contents')" id="nav-contents">
-      <span class="nav-icon">💬</span> 콘텐츠 관리
+      <span class="nav-icon">💬</span> 격언·팁·사자성어
+    </div>
+    <div class="nav-item" onclick="showPage('exercise')" id="nav-exercise">
+      <span class="nav-icon">🏋️</span> 운동법
     </div>
     <div class="nav-item" onclick="showPage('diet')" id="nav-diet">
       <span class="nav-icon">🥗</span> 식단·조리법
@@ -278,19 +281,18 @@
       </div>
     </div>
 
-    <!-- ② 콘텐츠 관리 -->
+    <!-- ② 격언·팁·사자성어 -->
     <div class="page" id="page-contents">
-      <div class="page-title">💬 콘텐츠 관리</div>
-      <div class="page-sub">daily_contents 테이블 — 격언·사자성어·건강팁·운동법 통합 관리</div>
+      <div class="page-title">💬 격언·팁·사자성어</div>
+      <div class="page-sub">daily_contents 테이블 — quote(격언) · idiom(사자성어) · health(건강팁)</div>
       <div class="filters">
         <select id="dc-filter-type" onchange="loadContents()">
           <option value="">전체 유형</option>
           <option value="quote">📜 격언</option>
           <option value="idiom">🈲 사자성어</option>
           <option value="health">💊 건강팁</option>
-          <option value="exercise">🏋️ 운동법</option>
         </select>
-        <button class="btn btn-accent" onclick="openContentsModal()">+ 새로 추가</button>
+        <button class="btn btn-accent" onclick="openContentsModal('quote')">+ 새로 추가</button>
       </div>
       <div class="card">
         <div class="card-header"><h3 id="dc-count-label">전체</h3></div>
@@ -304,7 +306,34 @@
       </div>
     </div>
 
-    <!-- ③ 식단·조리법 -->
+    <!-- ③ 운동법 -->
+    <div class="page" id="page-exercise">
+      <div class="page-title">🏋️ 운동법</div>
+      <div class="page-sub">daily_contents 테이블 — type='exercise' 필터</div>
+      <div class="filters">
+        <select id="ex-filter-cat" onchange="loadExercise()">
+          <option value="">전체 카테고리</option>
+          <option value="유산소">유산소</option>
+          <option value="근력">근력</option>
+          <option value="스트레칭">스트레칭</option>
+          <option value="틈새운동">틈새운동</option>
+          <option value="홈트">홈트</option>
+        </select>
+        <button class="btn btn-accent" onclick="openContentsModal('exercise')">+ 새로 추가</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3 id="ex-count-label">전체</h3></div>
+        <table>
+          <thead><tr>
+            <th>#</th><th>카테고리</th><th>운동명(main)</th><th>부제(sub)</th>
+            <th>설명(body)</th><th>영문</th><th>날짜</th><th>액션</th>
+          </tr></thead>
+          <tbody id="ex-tbody"><tr><td colspan="8" class="loading">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ④ 식단·조리법 -->
     <div class="page" id="page-diet">
       <div class="page-title">🥗 식단·조리법</div>
       <div class="page-sub">diet_recommendations 테이블 관리</div>
@@ -724,7 +753,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
-  const loaders = { feedback: loadFeedback, contents: loadContents, diet: loadDiet, selfcheck: loadSelfCheck, users: loadUsers, config: loadConfig };
+  const loaders = { feedback: loadFeedback, contents: loadContents, exercise: loadExercise, diet: loadDiet, selfcheck: loadSelfCheck, users: loadUsers, config: loadConfig };
   if (loaders[name]) loaders[name]();
 }
 
@@ -887,10 +916,10 @@ async function loadContents() {
   `).join('');
 }
 
-function openContentsModal(d = null) {
+function openContentsModal(defaultType = 'quote', d = null) {
   document.getElementById('contents-modal-title').textContent = d ? '콘텐츠 수정' : '콘텐츠 추가';
   document.getElementById('contents-edit-id').value = d?.id || '';
-  document.getElementById('dc-type').value = d?.type || 'quote';
+  document.getElementById('dc-type').value = d?.type || defaultType;
   document.getElementById('dc-category').value = d?.category || '';
   document.getElementById('dc-main').value = d?.main || '';
   document.getElementById('dc-sub').value = d?.sub || '';
@@ -903,9 +932,40 @@ function openContentsModal(d = null) {
   openModal('modal-contents');
 }
 
+// ===== ③ 운동법 =====
+async function loadExercise() {
+  const cat = document.getElementById('ex-filter-cat').value;
+  let q = sb.from('daily_contents').select('*').eq('type', 'exercise').order('created_at', { ascending: false }).limit(200);
+  if (cat) q = q.eq('category', cat);
+  const { data, error } = await q;
+  const tbody = document.getElementById('ex-tbody');
+  if (error || !data?.length) {
+    document.getElementById('ex-count-label').textContent = '전체 0건';
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">${error ? '오류 발생' : '등록된 운동법 없음'}</td></tr>`; return;
+  }
+  document.getElementById('ex-count-label').textContent = `전체 ${data.length}건`;
+  tbody.innerHTML = data.map((d, i) => `
+    <tr>
+      <td class="text-muted">${i + 1}</td>
+      <td><span class="badge badge-purple">${d.category||'-'}</span></td>
+      <td class="text-clamp">${d.main||'-'}</td>
+      <td class="text-clamp text-muted">${d.sub||'-'}</td>
+      <td class="text-clamp text-muted">${d.body||'-'}</td>
+      <td><span class="badge ${d.main_en?'badge-green':'badge-gray'}">${d.main_en?'있음':'-'}</span></td>
+      <td class="text-muted">${fmtDate(d.created_at)}</td>
+      <td>
+        <div class="flex-gap">
+          <button class="btn btn-sm btn-ghost" onclick="editContents(${d.id})">수정</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteContents(${d.id})">삭제</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
 async function editContents(id) {
   const { data } = await sb.from('daily_contents').select('*').eq('id', id).single();
-  if (data) openContentsModal(data);
+  if (data) openContentsModal(data.type || 'quote', data);
 }
 
 async function saveContents() {
@@ -927,14 +987,17 @@ async function saveContents() {
     ? await sb.from('daily_contents').update(payload).eq('id', id)
     : await sb.from('daily_contents').insert(payload);
   if (error) { toast('저장 실패: ' + error.message); return; }
-  toast('저장 완료 ✓'); closeModal('modal-contents'); loadContents();
+  toast('저장 완료 ✓'); closeModal('modal-contents');
+  if (payload.type === 'exercise') loadExercise(); else loadContents();
 }
 
 async function deleteContents(id) {
   if (!confirm('삭제하시겠습니까?')) return;
+  const { data: item } = await sb.from('daily_contents').select('type').eq('id', id).single();
   const { error } = await sb.from('daily_contents').delete().eq('id', id);
   if (error) { toast('삭제 실패'); return; }
-  toast('삭제 완료'); loadContents();
+  toast('삭제 완료');
+  if (item?.type === 'exercise') loadExercise(); else loadContents();
 }
 
 // ===== ③ 식단·조리법 =====
