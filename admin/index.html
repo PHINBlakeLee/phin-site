@@ -313,13 +313,11 @@
       <div class="filters">
         <select id="ex-filter-cat" onchange="loadExercise()">
           <option value="">전체 카테고리</option>
-          <option value="유산소">유산소</option>
-          <option value="근력">근력</option>
-          <option value="스트레칭">스트레칭</option>
-          <option value="틈새운동">틈새운동</option>
-          <option value="홈트">홈트</option>
+          <option value="cardio">유산소</option>
+          <option value="strength">근력</option>
+          <option value="flex">유연성·사색</option>
         </select>
-        <button class="btn btn-accent" onclick="openContentsModal('exercise')">+ 새로 추가</button>
+        <button class="btn btn-accent" onclick="openExerciseModal()">+ 새로 추가</button>
       </div>
       <div class="card">
         <div class="card-header"><h3 id="ex-count-label">전체</h3></div>
@@ -340,9 +338,9 @@
       <div class="filters">
         <select id="diet-filter-budget" onchange="loadDiet()">
           <option value="">전체 예산</option>
-          <option value="low">저예산</option>
-          <option value="mid">중간</option>
-          <option value="high">고예산</option>
+          <option value="실속형">실속형</option>
+          <option value="표준형">표준형</option>
+          <option value="프리미엄">프리미엄</option>
         </select>
         <button class="btn btn-accent" onclick="openDietModal()">+ 새로 추가</button>
       </div>
@@ -569,9 +567,9 @@
       <div class="form-row">
         <label>예산</label>
         <select id="diet-budget">
-          <option value="low">저예산</option>
-          <option value="mid">중간</option>
-          <option value="high">고예산</option>
+          <option value="실속형">실속형</option>
+          <option value="표준형">표준형</option>
+          <option value="프리미엄">프리미엄</option>
         </select>
       </div>
     </div>
@@ -673,6 +671,79 @@
     <div id="sc-preview-content"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-sc-preview')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 운동법 추가/수정 모달 -->
+<div class="modal-overlay" id="modal-exercise">
+  <div class="modal" style="width:580px">
+    <h3 id="ex-modal-title">운동법 추가</h3>
+    <input type="hidden" id="ex-edit-id">
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>분류 (type) *</label>
+        <select id="ex-type">
+          <option value="strength">근력</option>
+          <option value="cardio">유산소</option>
+          <option value="flex">유연성·사색</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>부위 (part)</label>
+        <input id="ex-part" placeholder="예: 하체, 상체, 코어, 전신, 유연성, 유산소">
+      </div>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>공식 운동명 (official_name) *</label>
+        <input id="ex-official" placeholder="예: 스쿼트">
+      </div>
+      <div class="form-row">
+        <label>친근한 이름 (kind_name)</label>
+        <input id="ex-kind" placeholder="예: 앉았다 일어나기">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>동작 설명 (guide1) *</label>
+      <textarea id="ex-guide1" placeholder="정석 동작 설명"></textarea>
+    </div>
+    <div class="form-row">
+      <label>격려 코멘트 (guide2)</label>
+      <textarea id="ex-guide2" placeholder="장난스러운 격려 문구"></textarea>
+    </div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>장소 (쉼표 구분)</label>
+        <input id="ex-locations" placeholder="예: home, park, office">
+      </div>
+      <div class="form-row">
+        <label>기구 (쉼표 구분)</label>
+        <input id="ex-equipment" placeholder="없으면 비워두세요">
+      </div>
+    </div>
+    <div style="margin:14px 0 8px;font-size:12px;font-weight:700;color:var(--accent2)">🌐 영문 (선택)</div>
+    <div class="form-grid-2">
+      <div class="form-row">
+        <label>공식명 영문</label>
+        <input id="ex-official-en" placeholder="e.g. Squat">
+      </div>
+      <div class="form-row">
+        <label>친근한 이름 영문</label>
+        <input id="ex-kind-en" placeholder="e.g. Sit and Stand">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>동작 설명 영문</label>
+      <textarea id="ex-guide1-en" placeholder="English guide"></textarea>
+    </div>
+    <div class="form-row">
+      <label>격려 코멘트 영문</label>
+      <textarea id="ex-guide2-en" placeholder="English encouragement"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-exercise')">취소</button>
+      <button class="btn btn-accent" onclick="saveExercise()">저장</button>
     </div>
   </div>
 </div>
@@ -935,8 +1006,8 @@ function openContentsModal(defaultType = 'quote', d = null) {
 // ===== ③ 운동법 =====
 async function loadExercise() {
   const cat = document.getElementById('ex-filter-cat').value;
-  let q = sb.from('daily_contents').select('*').eq('type', 'exercise').order('created_at', { ascending: false }).limit(200);
-  if (cat) q = q.eq('category', cat);
+  let q = sb.from('exercises').select('*').order('type').order('id');
+  if (cat) q = q.eq('type', cat);
   const { data, error } = await q;
   const tbody = document.getElementById('ex-tbody');
   if (error || !data?.length) {
@@ -944,19 +1015,20 @@ async function loadExercise() {
     tbody.innerHTML = `<tr><td colspan="8" class="empty">${error ? '오류 발생' : '등록된 운동법 없음'}</td></tr>`; return;
   }
   document.getElementById('ex-count-label').textContent = `전체 ${data.length}건`;
+  const catLabel = { cardio:'유산소', strength:'근력', flex:'유연성·사색' };
   tbody.innerHTML = data.map((d, i) => `
     <tr>
       <td class="text-muted">${i + 1}</td>
-      <td><span class="badge badge-purple">${d.category||'-'}</span></td>
-      <td class="text-clamp">${d.main||'-'}</td>
-      <td class="text-clamp text-muted">${d.sub||'-'}</td>
-      <td class="text-clamp text-muted">${d.body||'-'}</td>
-      <td><span class="badge ${d.main_en?'badge-green':'badge-gray'}">${d.main_en?'있음':'-'}</span></td>
+      <td><span class="badge badge-purple">${catLabel[d.type]||d.type||'-'}</span></td>
+      <td class="text-clamp">${d.official_name||'-'}</td>
+      <td class="text-clamp text-muted">${d.kind_name||'-'}</td>
+      <td class="text-clamp text-muted">${d.guide1||'-'}</td>
+      <td><span class="badge ${d.official_name_en?'badge-green':'badge-gray'}">${d.official_name_en?'있음':'-'}</span></td>
       <td class="text-muted">${fmtDate(d.created_at)}</td>
       <td>
         <div class="flex-gap">
-          <button class="btn btn-sm btn-ghost" onclick="editContents(${d.id})">수정</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteContents(${d.id})">삭제</button>
+          <button class="btn btn-sm btn-ghost" onclick="editExercise(${d.id})">수정</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteExercise(${d.id})">삭제</button>
         </div>
       </td>
     </tr>
@@ -1000,7 +1072,63 @@ async function deleteContents(id) {
   if (item?.type === 'exercise') loadExercise(); else loadContents();
 }
 
-// ===== ③ 식단·조리법 =====
+async function editExercise(id) {
+  const { data } = await sb.from('exercises').select('*').eq('id', id).single();
+  if (data) openExerciseModal(data);
+}
+
+async function deleteExercise(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  const { error } = await sb.from('exercises').delete().eq('id', id);
+  if (error) { toast('삭제 실패'); return; }
+  toast('삭제 완료'); loadExercise();
+}
+
+function openExerciseModal(d = null) {
+  document.getElementById('ex-modal-title').textContent = d ? '운동법 수정' : '운동법 추가';
+  document.getElementById('ex-edit-id').value = d?.id || '';
+  document.getElementById('ex-type').value = d?.type || 'strength';
+  document.getElementById('ex-part').value = d?.part || '';
+  document.getElementById('ex-official').value = d?.official_name || '';
+  document.getElementById('ex-kind').value = d?.kind_name || '';
+  document.getElementById('ex-guide1').value = d?.guide1 || '';
+  document.getElementById('ex-guide2').value = d?.guide2 || '';
+  document.getElementById('ex-locations').value = Array.isArray(d?.locations) ? d.locations.join(', ') : '';
+  document.getElementById('ex-equipment').value = Array.isArray(d?.equipment) ? d.equipment.join(', ') : '';
+  document.getElementById('ex-official-en').value = d?.official_name_en || '';
+  document.getElementById('ex-kind-en').value = d?.kind_name_en || '';
+  document.getElementById('ex-guide1-en').value = d?.guide1_en || '';
+  document.getElementById('ex-guide2-en').value = d?.guide2_en || '';
+  openModal('modal-exercise');
+}
+
+async function saveExercise() {
+  const id = document.getElementById('ex-edit-id').value;
+  const locRaw = document.getElementById('ex-locations').value;
+  const eqRaw = document.getElementById('ex-equipment').value;
+  const payload = {
+    type: document.getElementById('ex-type').value,
+    part: document.getElementById('ex-part').value.trim() || null,
+    official_name: document.getElementById('ex-official').value.trim(),
+    kind_name: document.getElementById('ex-kind').value.trim(),
+    guide1: document.getElementById('ex-guide1').value.trim(),
+    guide2: document.getElementById('ex-guide2').value.trim() || null,
+    locations: locRaw ? locRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+    equipment: eqRaw ? eqRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+    official_name_en: document.getElementById('ex-official-en').value.trim() || null,
+    kind_name_en: document.getElementById('ex-kind-en').value.trim() || null,
+    guide1_en: document.getElementById('ex-guide1-en').value.trim() || null,
+    guide2_en: document.getElementById('ex-guide2-en').value.trim() || null,
+  };
+  if (!payload.official_name) { toast('운동명을 입력하세요'); return; }
+  const { error } = id
+    ? await sb.from('exercises').update(payload).eq('id', id)
+    : await sb.from('exercises').insert(payload);
+  if (error) { toast('저장 실패: ' + error.message); return; }
+  toast('저장 완료 ✓'); closeModal('modal-exercise'); loadExercise();
+}
+
+// ===== ④ 식단·조리법 =====
 async function loadDiet() {
   const budget = document.getElementById('diet-filter-budget').value;
   let q = sb.from('diet_recommendations').select('*').order('id', { ascending: false }).limit(100);
@@ -1012,7 +1140,7 @@ async function loadDiet() {
     tbody.innerHTML = `<tr><td colspan="8" class="empty">${error ? '오류 발생' : '항목 없음'}</td></tr>`; return;
   }
   document.getElementById('diet-count-label').textContent = `전체 ${data.length}건`;
-  const budgetLabel = { low: '저예산', mid: '중간', high: '고예산' };
+  const budgetLabel = { '실속형': '실속형', '표준형': '표준형', '프리미엄': '프리미엄' };
   tbody.innerHTML = data.map((d, i) => `
     <tr>
       <td class="text-muted">${i + 1}</td>
@@ -1037,7 +1165,7 @@ function openDietModal(d = null) {
   document.getElementById('diet-edit-id').value = d?.id || '';
   document.getElementById('diet-menu').value = d?.menu_name || '';
   document.getElementById('diet-situation').value = d?.situation || '';
-  document.getElementById('diet-budget').value = d?.budget || 'low';
+  document.getElementById('diet-budget').value = d?.budget || '표준형';
   document.getElementById('diet-kcal').value = d?.kcal || '';
   document.getElementById('diet-nutrition').value = d?.nutrition_focus || '';
   document.getElementById('diet-ingredients').value = d?.ingredients || '';
