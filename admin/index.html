@@ -235,6 +235,9 @@
     <div class="nav-item" onclick="showPage('users')" id="nav-users">
       <span class="nav-icon">👥</span> 사용자 현황
     </div>
+    <div class="nav-item" onclick="showPage('sim')" id="nav-sim">
+      <span class="nav-icon">🧪</span> 테스트
+    </div>
     <div class="nav-item" onclick="showPage('config')" id="nav-config">
       <span class="nav-icon">⚙️</span> 앱 설정
     </div>
@@ -445,6 +448,29 @@
       </div>
     </div>
 
+    <!-- ⑦ 테스트 (E2E 가상 사용자 시뮬레이션) -->
+    <div class="page" id="page-sim">
+      <div class="page-title">🧪 테스트 · 가상 사용자</div>
+      <div class="page-sub">sim_personas / sim_runs — 실행은 외부 러너가 기록, 여기선 정의와 결과 조회</div>
+      <div class="filters">
+        <button class="btn btn-accent" onclick="openSimPersona()">+ 새 페르소나</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>페르소나</h3></div>
+        <table>
+          <thead><tr><th>이름</th><th>나이/성별</th><th>메모</th><th>수정일</th><th>액션</th></tr></thead>
+          <tbody id="sim-persona-tbody"><tr><td colspan="5" class="loading">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>실행 목록</h3></div>
+        <table>
+          <thead><tr><th>실행 시각</th><th>페르소나</th><th>상태</th><th>FAIL</th><th>액션</th></tr></thead>
+          <tbody id="sim-run-tbody"><tr><td colspan="5" class="loading">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ⑥ 앱 설정 -->
     <div class="page" id="page-config">
       <div class="page-title">⚙️ 앱 설정</div>
@@ -462,6 +488,46 @@
     </div>
 
   </div><!-- /main -->
+
+<!-- 페르소나 편집 모달 -->
+<div class="modal-overlay" id="modal-sim-persona">
+  <div class="modal" style="width:760px;max-width:95vw;max-height:90vh;overflow:auto">
+    <h3 id="sim-persona-title">페르소나 편집</h3>
+    <div class="form-row"><label>이름</label><input id="sp-name" placeholder="예: 흡연 직장인 A"></div>
+    <div class="form-row"><label>메모</label><input id="sp-memo" placeholder="시나리오 설명"></div>
+    <h4 style="margin:14px 0 8px">온보딩 프로필 (엔진 입력)</h4>
+    <div id="sp-profile-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px"></div>
+    <h4 style="margin:18px 0 8px">D1~D7 일별 계획</h4>
+    <table>
+      <thead><tr><th>일차</th><th>기록</th><th>수면</th><th>운동</th><th>음주(g)</th><th>물(ml)</th><th>미션</th></tr></thead>
+      <tbody id="sp-plan-tbody"></tbody>
+    </table>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-sim-persona')">닫기</button>
+      <button class="btn btn-accent" onclick="saveSimPersona()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 실행 결과 모달 -->
+<div class="modal-overlay" id="modal-sim-run">
+  <div class="modal" style="width:900px;max-width:95vw;max-height:90vh;overflow:auto">
+    <h3 id="sim-run-title">실행 결과</h3>
+    <h4 style="margin:12px 0 6px">점수 추이</h4>
+    <div id="sr-chart"></div>
+    <h4 style="margin:16px 0 6px">D1~D7 스크린샷</h4>
+    <div id="sr-shots" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+      <div><h4 style="margin-bottom:6px">발생 팝업</h4><ul id="sr-popups" style="font-size:13px;padding-left:18px"></ul></div>
+      <div><h4 style="margin-bottom:6px">미션 목록</h4><ul id="sr-missions" style="font-size:13px;padding-left:18px"></ul></div>
+    </div>
+    <h4 style="margin:16px 0 6px;color:var(--danger)">자동 FAIL</h4>
+    <ul id="sr-fails" style="font-size:13px;padding-left:18px"></ul>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-sim-run')">닫기</button>
+    </div>
+  </div>
+</div>
 </div><!-- /app -->
 
 <!-- ===== MODALS ===== -->
@@ -824,7 +890,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
-  const loaders = { feedback: loadFeedback, contents: loadContents, exercise: loadExercise, diet: loadDiet, selfcheck: loadSelfCheck, users: loadUsers, config: loadConfig };
+  const loaders = { feedback: loadFeedback, contents: loadContents, exercise: loadExercise, diet: loadDiet, selfcheck: loadSelfCheck, users: loadUsers, sim: loadSim, config: loadConfig };
   if (loaders[name]) loaders[name]();
 }
 
@@ -1347,9 +1413,11 @@ async function loadUsers() {
     'created_at'
   ].join(',');
 
-  const { data: profiles, error } = await sb.from('user_profiles')
-    .select(cols).order('created_at', { ascending: false }).limit(20);
-  const { count } = await sb.from('user_profiles').select('id', { count: 'exact', head: true });
+  // 시뮬레이션 계정(sim%@phin.health) 제외. email NULL 행도 포함되도록 or() 사용
+  const notSim = q => q.or('email.is.null,email.not.like.sim%@phin.health');
+  const { data: profiles, error } = await notSim(sb.from('user_profiles')
+    .select(cols).order('created_at', { ascending: false }).limit(20));
+  const { count } = await notSim(sb.from('user_profiles').select('id', { count: 'exact', head: true }));
 
   document.getElementById('stat-total').textContent = count ?? '-';
 
@@ -1372,8 +1440,8 @@ async function loadUsers() {
     { name: 'GRAY PHiN', min: 0, max: 34, cls: 'badge-gray' },
   ];
   const tierRows = await Promise.all(tiers.map(async t => {
-    const { count: c } = await sb.from('user_profiles').select('id', { count: 'exact', head: true })
-      .gte('phin_score', t.min).lte('phin_score', t.max);
+    const { count: c } = await notSim(sb.from('user_profiles').select('id', { count: 'exact', head: true })
+      .gte('phin_score', t.min).lte('phin_score', t.max));
     const pct = count ? Math.round((c || 0) / count * 100) : 0;
     return `<tr><td><span class="badge ${t.cls}">${t.name}</span></td><td class="text-muted">${t.min}~${t.max}점</td><td>${c ?? 0}명</td><td>${pct}%</td></tr>`;
   }));
@@ -1673,6 +1741,11 @@ async function deleteUserData(uid, name) {
     { table: 'onboarding_step2',        col: 'user_id' },
     { table: 'custom_keywords',         col: 'user_id' },
     { table: 'phin_score_detail',       col: 'user_id' },
+    { table: 'body_measurements',       col: 'user_id' },
+    { table: 'fitness_test_results',    col: 'user_id' },
+    { table: 'mission_daily_feedback',  col: 'user_id' },
+    { table: 'score_history',           col: 'user_id' },
+    { table: 'user_missions',           col: 'user_id' },
     { table: 'user_profiles',           col: 'id'      },
   ];
 
@@ -1692,6 +1765,191 @@ async function deleteUserData(uid, name) {
     toast(`✓ "${name}" 앱 데이터 삭제 완료`);
   }
   loadUsers(); // 목록 갱신
+}
+
+// ===== ⑦ 테스트 (가상 사용자 시뮬레이션) =====
+const SIM_PROFILE_FIELDS = [
+  { k: 'age', l: '나이', t: 'num' },
+  { k: 'gender', l: '성별', t: 'sel', o: [['male','남'],['female','여']] },
+  { k: 'height_cm', l: '키(cm)', t: 'num' },
+  { k: 'weight_kg', l: '체중(kg)', t: 'num' },
+  { k: 'waist_cm', l: '허리(cm)', t: 'num' },
+  { k: 'smoking_status', l: '흡연', t: 'sel', o: [['never','비흡연'],['current','흡연중'],['quit','금연'],['past','과거흡연']] },
+  { k: 'cigarettes_per_day', l: '하루 흡연량', t: 'num' },
+  { k: 'drinking_status', l: '음주', t: 'sel', o: [['none','금주'],['light','가볍게'],['moderate','보통'],['heavy','많이']] },
+  { k: 'weekly_alcohol_grams', l: '주간 음주(g)', t: 'num' },
+  { k: 'exercise_days', l: '주 운동일수', t: 'num' },
+  { k: 'exercise_minutes', l: '운동 시간(분)', t: 'num' },
+  { k: 'sleep_hours', l: '수면(시간)', t: 'num' },
+  { k: 'stress_level', l: '스트레스(1~5)', t: 'num' },
+  { k: 'eating_type', l: '식습관', t: 'text' },
+  { k: 'systolic_bp', l: '수축기 혈압', t: 'num' },
+  { k: 'diastolic_bp', l: '이완기 혈압', t: 'num' },
+  { k: 'fasting_glucose', l: '공복혈당', t: 'num' },
+  { k: 'total_cholesterol', l: '총콜레스테롤', t: 'num' },
+  { k: 'hdl', l: 'HDL', t: 'num' },
+  { k: 'triglycerides', l: '중성지방', t: 'num' },
+];
+const SIM_PLAN_SEL = {
+  logged: [['yes','기록함'],['skip','건너뜀']],
+  sleep: [['good','좋음'],['normal','보통'],['poor','나쁨']],
+  exercise: [['yes','함'],['no','안 함']],
+  mission: [['done','수행'],['skip','미수행']],
+};
+let _simPersonas = [];
+let _simEditId = null;
+
+function simEsc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function simOpts(list, cur) {
+  return list.map(([val, lbl]) => `<option value="${val}" ${val === cur ? 'selected' : ''}>${lbl}</option>`).join('');
+}
+function simScoreColor(s) {
+  return s >= 71 ? '#00c896' : s >= 31 ? '#f5a623' : '#ff4f4f';
+}
+
+async function loadSim() {
+  const [{ data: ps }, { data: rs }] = await Promise.all([
+    sb.from('sim_personas').select('*').order('created_at', { ascending: false }),
+    sb.from('sim_runs').select('*, sim_personas(name)').order('run_at', { ascending: false }).limit(100),
+  ]);
+  _simPersonas = ps || [];
+  document.getElementById('sim-persona-tbody').innerHTML = _simPersonas.length ? _simPersonas.map(p => `
+    <tr>
+      <td>${simEsc(p.name)}</td>
+      <td>${simEsc(p.profile?.age ?? '-')} / ${simEsc(p.profile?.gender ?? '-')}</td>
+      <td class="text-muted" style="font-size:12px">${simEsc(p.memo || '-')}</td>
+      <td class="text-muted" style="font-size:12px">${new Date(p.updated_at).toLocaleString('ko-KR')}</td>
+      <td>
+        <button class="btn btn-ghost" onclick="openSimPersona('${p.id}')">편집</button>
+        <button class="btn btn-ghost" onclick="cloneSimPersona('${p.id}')">복제</button>
+        <button class="btn btn-danger" onclick="deleteSimPersona('${p.id}')">삭제</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="5" class="text-muted">페르소나 없음</td></tr>';
+
+  document.getElementById('sim-run-tbody').innerHTML = (rs || []).length ? rs.map(r => {
+    const fails = r.summary?.fails?.length || 0;
+    const cls = r.status === 'pass' ? 'badge-green' : r.status === 'running' ? 'badge-gray' : 'badge-red';
+    return `<tr>
+      <td class="text-muted" style="font-size:12px">${new Date(r.run_at).toLocaleString('ko-KR')}</td>
+      <td>${simEsc(r.sim_personas?.name || '-')}</td>
+      <td><span class="badge ${cls}">${simEsc(r.status)}</span></td>
+      <td>${fails ? `<span class="badge badge-red">${fails}건</span>` : '<span class="text-muted">0</span>'}</td>
+      <td><button class="btn btn-ghost" onclick="showSimRun('${r.id}')">상세</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="text-muted">실행 기록 없음</td></tr>';
+}
+
+function openSimPersona(id) {
+  _simEditId = id || null;
+  const p = id ? _simPersonas.find(x => x.id === id) : null;
+  const prof = p?.profile || {};
+  const plan = p?.daily_plan || [];
+  document.getElementById('sim-persona-title').textContent = p ? '페르소나 편집' : '새 페르소나';
+  document.getElementById('sp-name').value = p?.name || '';
+  document.getElementById('sp-memo').value = p?.memo || '';
+  document.getElementById('sp-profile-grid').innerHTML = SIM_PROFILE_FIELDS.map(f => {
+    const cur = prof[f.k] ?? '';
+    const input = f.t === 'sel'
+      ? `<select id="spp-${f.k}">${simOpts(f.o, cur)}</select>`
+      : `<input id="spp-${f.k}" type="${f.t === 'num' ? 'number' : 'text'}" step="any" value="${simEsc(cur)}">`;
+    return `<div class="form-row" style="margin:0"><label>${f.l}</label>${input}</div>`;
+  }).join('');
+  document.getElementById('sp-plan-tbody').innerHTML = [1,2,3,4,5,6,7].map(d => {
+    const r = plan[d - 1] || {};
+    return `<tr>
+      <td>D${d}</td>
+      <td><select id="spd-${d}-logged">${simOpts(SIM_PLAN_SEL.logged, r.logged || 'yes')}</select></td>
+      <td><select id="spd-${d}-sleep">${simOpts(SIM_PLAN_SEL.sleep, r.sleep || 'normal')}</select></td>
+      <td><select id="spd-${d}-exercise">${simOpts(SIM_PLAN_SEL.exercise, r.exercise || 'no')}</select></td>
+      <td><input id="spd-${d}-alcohol" type="number" min="0" value="${r.alcohol_g ?? 0}" style="width:80px"></td>
+      <td><input id="spd-${d}-water" type="number" min="0" value="${r.water_ml ?? 0}" style="width:80px"></td>
+      <td><select id="spd-${d}-mission">${simOpts(SIM_PLAN_SEL.mission, r.mission || 'skip')}</select></td>
+    </tr>`;
+  }).join('');
+  openModal('modal-sim-persona');
+}
+
+async function saveSimPersona() {
+  const name = document.getElementById('sp-name').value.trim();
+  if (!name) { toast('이름을 입력하세요'); return; }
+  const profile = {};
+  SIM_PROFILE_FIELDS.forEach(f => {
+    const val = document.getElementById('spp-' + f.k).value;
+    if (val === '') return;
+    profile[f.k] = f.t === 'num' ? Number(val) : val;
+  });
+  const daily_plan = [1,2,3,4,5,6,7].map(d => ({
+    day: d,
+    logged: document.getElementById(`spd-${d}-logged`).value,
+    sleep: document.getElementById(`spd-${d}-sleep`).value,
+    exercise: document.getElementById(`spd-${d}-exercise`).value,
+    alcohol_g: Number(document.getElementById(`spd-${d}-alcohol`).value) || 0,
+    water_ml: Number(document.getElementById(`spd-${d}-water`).value) || 0,
+    mission: document.getElementById(`spd-${d}-mission`).value,
+  }));
+  const payload = { name, profile, daily_plan, memo: document.getElementById('sp-memo').value.trim() || null, updated_at: new Date().toISOString() };
+  const { error } = _simEditId
+    ? await sb.from('sim_personas').update(payload).eq('id', _simEditId)
+    : await sb.from('sim_personas').insert(payload);
+  if (error) { toast('저장 실패: ' + error.message); return; }
+  toast('저장 완료 ✓'); closeModal('modal-sim-persona'); loadSim();
+}
+
+async function cloneSimPersona(id) {
+  const { data: p, error } = await sb.from('sim_personas').select('*').eq('id', id).single();
+  if (error || !p) { toast('복제 실패'); return; }
+  const { id: _omit, created_at, updated_at, ...rest } = p;
+  const { error: e2 } = await sb.from('sim_personas').insert({ ...rest, name: p.name + ' (복제)' });
+  if (e2) { toast('복제 실패: ' + e2.message); return; }
+  toast('복제 완료 ✓'); loadSim();
+}
+
+async function deleteSimPersona(id) {
+  if (!confirm('페르소나와 연결된 실행 기록을 모두 삭제합니다. 계속하시겠습니까?')) return;
+  const { error } = await sb.from('sim_personas').delete().eq('id', id);
+  if (error) { toast('삭제 실패: ' + error.message); return; }
+  toast('삭제 완료'); loadSim();
+}
+
+async function showSimRun(id) {
+  const { data: r, error } = await sb.from('sim_runs').select('*, sim_personas(name)').eq('id', id).single();
+  if (error || !r) { toast('실행 기록을 불러올 수 없습니다'); return; }
+  const s = r.summary || {};
+  document.getElementById('sim-run-title').textContent = `${r.sim_personas?.name || '-'} · ${new Date(r.run_at).toLocaleString('ko-KR')}`;
+
+  // 점수 추이 (SVG). 색상: 71+ 초록 / 31~70 노랑 / 1~30 빨강
+  const scores = (s.scores || []).slice().sort((a, b) => a.day - b.day);
+  const W = 640, H = 180, P = 28;
+  const xOf = d => P + (d - 1) * ((W - P * 2) / 6);
+  const yOf = v => H - P - (Math.max(0, Math.min(100, v)) / 100) * (H - P * 2);
+  const pts = scores.map(p => `${xOf(p.day)},${yOf(p.score)}`).join(' ');
+  document.getElementById('sr-chart').innerHTML = scores.length ? `
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px">
+      <line x1="${P}" y1="${yOf(70)}" x2="${W-P}" y2="${yOf(70)}" stroke="#f5a623" stroke-dasharray="4 4" opacity=".5"/>
+      <line x1="${P}" y1="${yOf(30)}" x2="${W-P}" y2="${yOf(30)}" stroke="#ff4f4f" stroke-dasharray="4 4" opacity=".5"/>
+      <polyline points="${pts}" fill="none" stroke="var(--accent2)" stroke-width="2"/>
+      ${scores.map(p => `<circle cx="${xOf(p.day)}" cy="${yOf(p.score)}" r="4" fill="${simScoreColor(p.score)}"><title>D${p.day}: ${p.score}점</title></circle>
+        <text x="${xOf(p.day)}" y="${H-8}" font-size="11" text-anchor="middle" fill="var(--muted)">D${p.day}</text>`).join('')}
+    </svg>` : '<p class="text-muted">점수 데이터 없음</p>';
+
+  // 스크린샷 (비공개 버킷 → 서명 URL, 1시간)
+  const shots = s.screens || [];
+  const signed = await Promise.all(shots.map(async sc => {
+    const { data } = await sb.storage.from('sim-results').createSignedUrl(sc.path, 3600);
+    return { ...sc, url: data?.signedUrl };
+  }));
+  document.getElementById('sr-shots').innerHTML = signed.length ? signed.map(sc => `
+    <div style="text-align:center;font-size:12px">
+      ${sc.url ? `<a href="${sc.url}" target="_blank"><img src="${sc.url}" style="width:100%;border-radius:8px;border:1px solid var(--border)"></a>` : '<span class="text-muted">로드 실패</span>'}
+      <div class="text-muted">D${sc.day}</div>
+    </div>`).join('') : '<p class="text-muted">스크린샷 없음</p>';
+
+  document.getElementById('sr-popups').innerHTML = (s.popups || []).map(p => `<li>D${simEsc(p.day)} · ${simEsc(p.text)}</li>`).join('') || '<li class="text-muted">없음</li>';
+  document.getElementById('sr-missions').innerHTML = (s.missions || []).map(m => `<li>D${simEsc(m.day)} · ${simEsc(m.text)} ${m.done ? '✓' : '✗'}</li>`).join('') || '<li class="text-muted">없음</li>';
+  document.getElementById('sr-fails').innerHTML = (s.fails || []).map(f => `<li style="color:var(--danger)">[${simEsc(f.type)}] D${simEsc(f.day ?? '-')} · ${simEsc(f.msg)}</li>`).join('') || '<li class="text-muted">FAIL 없음</li>';
+  openModal('modal-sim-run');
 }
 
 // ===== ⑥ 앱 설정 =====
