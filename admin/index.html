@@ -463,7 +463,10 @@
         </table>
       </div>
       <div class="card">
-        <div class="card-header"><h3>시뮬레이션 추이 (sim 계정 실제 저장 데이터)</h3></div>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <h3>시뮬레이션 추이 (sim 계정 실제 저장 데이터)</h3>
+          <button class="btn btn-ghost" onclick="showSimIssues()">⚠️ 발생 오류 · 수정 여부</button>
+        </div>
         <div class="filters">
           <select id="sim-trend-user" onchange="loadSimTrend()"><option value="">계정 선택</option></select>
         </div>
@@ -512,6 +515,21 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-sim-persona')">닫기</button>
       <button class="btn btn-accent" onclick="saveSimPersona()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 발생 오류 · 수정 여부 모달 -->
+<div class="modal-overlay" id="modal-sim-issues">
+  <div class="modal" style="width:900px;max-width:95vw;max-height:90vh;overflow:auto">
+    <h3>발생 오류 · 수정 여부</h3>
+    <div class="page-sub" style="margin-bottom:10px">출처: docs/261005_phin_시뮬레이션_발견문제.md · 클라우드 작업 결과(docs/261010_phin_클라우드_작업결과.md). 상태는 코드 기준이며, 실기기 검증은 별도.</div>
+    <table>
+      <thead><tr><th>번호</th><th>내용</th><th>수정 여부</th><th>상태</th></tr></thead>
+      <tbody id="sim-issues-tbody"></tbody>
+    </table>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-sim-issues')">닫기</button>
     </div>
   </div>
 </div>
@@ -2013,7 +2031,8 @@ async function loadSimTrend() {
   const gPts = vit.map(r => ({ label: sd(r.measured_at), v: r.fasting_glucose }));
   const mRows = (missions || []).map(m => `<tr><td>${simEsc(m.domain)}</td><td>${simEsc(m.mission_type)}</td><td>${simEsc(m.start_date)}</td><td>${simEsc(m.target_value)}</td><td>${simEsc(m.current_value ?? '-')}</td><td>${simEsc(m.status)}</td></tr>`).join('');
   body.innerHTML = `
-    <h4 style="margin:8px 0">PHIN 점수 · 신체나이 (score_history)</h4>
+    ${simDailyTable(scores, vit)}
+    <h4 style="margin:14px 0 8px">PHIN 점수 · 신체나이 (score_history)</h4>
     ${simLineChart([{ name: 'PHIN 점수', color: '#00c896', points: scorePts }, { name: '신체나이', color: '#6c63ff', points: agePts }])}
     <h4 style="margin:14px 0 8px">체중 (kg)</h4>
     ${simLineChart([{ name: '체중', color: '#00b4d8', points: wPts }])}
@@ -2024,6 +2043,67 @@ async function loadSimTrend() {
     <h4 style="margin:14px 0 8px">미션 (user_missions)</h4>
     <table><thead><tr><th>영역</th><th>유형</th><th>시작일</th><th>목표</th><th>현재</th><th>상태</th></tr></thead>
     <tbody>${mRows || '<tr><td colspan="6" class="text-muted">미션 없음</td></tr>'}</tbody></table>`;
+}
+
+// ===== 날짜별 기록 표 (점수 포함) =====
+function simDailyTable(scores, vitals) {
+  const byDate = {};
+  (scores || []).forEach(r => {
+    byDate[r.recorded_date] = { ...(byDate[r.recorded_date] || {}), score: r.phin_score, age: r.body_age };
+  });
+  (vitals || []).forEach(r => {
+    byDate[r.measured_at] = { ...(byDate[r.measured_at] || {}), w: r.weight_kg, sbp: r.systolic_bp, dbp: r.diastolic_bp, g: r.fasting_glucose };
+  });
+  const rows = Object.keys(byDate).sort().map(d => {
+    const r = byDate[d];
+    const sc = r.score != null ? `<span style="color:${simScoreColor(r.score)};font-weight:700">${r.score}</span>` : '-';
+    const bp = r.sbp != null ? `${r.sbp}/${r.dbp}` : '-';
+    return `<tr><td>${simEsc(d)}</td><td>${sc}</td><td>${r.age ?? '-'}</td><td>${r.w ?? '-'}</td><td>${bp}</td><td>${r.g ?? '-'}</td></tr>`;
+  }).join('');
+  return `<h4 style="margin:8px 0">날짜별 기록 (점수 포함)</h4>
+    <table><thead><tr><th>날짜</th><th>PHIN</th><th>신체나이</th><th>체중(kg)</th><th>혈압</th><th>혈당</th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="6" class="text-muted">기록 없음</td></tr>'}</tbody></table>`;
+}
+
+// ===== 발생 오류 · 수정 여부 (상태는 코드 기준) =====
+// fixed: 'done' 수정 완료(코드) / 'verify' 수정했고 로컬 검증 대기 / 'open' 미수정 / 'decide' 사용자 결정 필요 / 'env' 테스트 환경 문제
+const SIM_ISSUES = [
+  { id: 'P1', title: '걸음수 권한 팝업이 다음 날 재등장', fixed: 'verify', note: '자동 팝업 제거, 미션 확정 직후 1회로 변경' },
+  { id: 'P2', title: '온보딩이 재실행마다 1단계로 복귀 (닉네임 게이트)', fixed: 'done', note: 'sim03 기준 재실행 시 대시보드 직행 확인' },
+  { id: 'P3', title: '온보딩 나이 슬라이더 오조작 (자동화 좌표)', fixed: 'env', note: '테스트 도구 문제, 앱 아님' },
+  { id: 'P4', title: '에뮬레이터 프로세스 자동 종료', fixed: 'env', note: '환경 문제, 완화 조치 적용' },
+  { id: 'P5', title: '날짜 변경 후 자동 시간 동기화 충돌', fixed: 'env', note: '테스트 도구 문제' },
+  { id: 'P6', title: '"건강 체크" 팝업 노출 조건 불명확', fixed: 'verify', note: '건강 체크 14일 주기 큐 적용, 검증 대기' },
+  { id: 'P7', title: '혈압·혈당·체중 저장 직후 목록 반영 지연', fixed: 'verify', note: '저장 직후 낙관 반영 적용' },
+  { id: 'P8', title: 'Stats Health 탭에 공복혈당 미표시', fixed: 'open', note: '미수정 (확인 필요)' },
+  { id: 'P9', title: '검진수치 요약 문구와 개별 판정 불일치', fixed: 'open', note: '미수정' },
+  { id: 'P10', title: '대시보드 카드 위치 변동으로 자동 탭 오동작', fixed: 'env', note: '테스트 도구 문제' },
+  { id: 'P11', title: '미션 걸음 목표: 적음 선택 후 요약 4000보', fixed: 'decide', note: '요약 표시 수정. 목표값 3000 변경 여부 결정 필요' },
+  { id: 'P12', title: '미션 마법사 한국어·영어 혼용', fixed: 'open', note: '미수정 (l10n 목록 작성 단계)' },
+  { id: 'P13', title: '미션 확정 후 대시보드 미반영', fixed: 'verify', note: '복귀 즉시 카드 갱신 적용, 검증 대기' },
+  { id: 'P14', title: '일일 미션 체크 카드가 새 미션을 못 읽음', fixed: 'verify', note: '새 미션 체계로 통일, 검증 대기' },
+  { id: 'P15', title: '톤 선택 팝업이 가입 2일차에 노출', fixed: 'verify', note: '가입 당일 큐 순서에서만 노출, 검증 대기' },
+  { id: 'P16', title: '나이 슬라이더를 자동화로 조작 불가', fixed: 'env', note: '테스트 도구 한계' },
+  { id: 'P17', title: '입력 1회 추가로 하루 만에 점수 +8 (84 → 92)', fixed: 'decide', note: '원인 확정(미측정 감점 해제). 수정 방식 결정 필요' },
+  { id: 'P18', title: '입력이 쌓여도 점수 92에서 고정', fixed: 'decide', note: '원인 추정(천장 91.5). 수정 방식 결정 필요' },
+  { id: 'E1', title: 'flutter test: test_smoking.dart 가 존재하지 않는 getter 사용', fixed: 'open', note: '테스트 파일 수정 필요 (앱 빌드 영향 없음)' },
+  { id: 'E2', title: 'flutter test: widget_test.dart 의 MyApp 참조 오류', fixed: 'open', note: '테스트 파일 수정 필요 (앱 빌드 영향 없음)' },
+];
+
+const SIM_FIX_LABEL = {
+  done: '<span class="badge badge-green">수정 완료</span>',
+  verify: '<span class="badge badge-purple">수정 · 검증 대기</span>',
+  open: '<span class="badge badge-red">미수정</span>',
+  decide: '<span class="badge badge-warn">결정 필요</span>',
+  env: '<span class="badge badge-gray">테스트 환경</span>',
+};
+
+function showSimIssues() {
+  document.getElementById('sim-issues-tbody').innerHTML = SIM_ISSUES.map(i =>
+    `<tr><td>${simEsc(i.id)}</td><td>${simEsc(i.title)}<div class="text-muted" style="font-size:12px">${simEsc(i.note)}</div></td>
+     <td>${SIM_FIX_LABEL[i.fixed] || simEsc(i.fixed)}</td><td class="text-muted" style="font-size:12px">${i.fixed === 'done' ? '검증 완료' : i.fixed === 'verify' ? '로컬 APK 검증 필요' : ''}</td></tr>`
+  ).join('');
+  openModal('modal-sim-issues');
 }
 
 // ===== ⑥ 앱 설정 =====
