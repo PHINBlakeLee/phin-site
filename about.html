@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0f0d">
+  <title>About PHIN — Personal Health INtelligence</title>
+  <meta name="description" content="PHIN is a health-coaching app from South Korea that turns lifestyle, body-composition, checkup and activity data into one 0–100 PHIN Score, compares you with your age peers, and coaches you day to day. Available on Google Play.">
+  <link rel="canonical" href="https://phin.health/about.html">
+  <link rel="alternate" hreflang="en" href="https://phin.health/about.html">
+  <link rel="alternate" hreflang="ko" href="https://phin.health/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://phin.health/about.html">
+  <meta property="og:title" content="About PHIN — Personal Health INtelligence">
+  <meta property="og:description" content="One 0–100 score for your health, compared with your age peers, with daily coaching. Live on Google Play.">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:site_name" content="PHIN">
+  <meta property="og:image" content="https://phin.health/uploads/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="About PHIN — Personal Health INtelligence">
+  <meta name="twitter:description" content="One 0–100 score for your health, compared with your age peers, with daily coaching. Live on Google Play.">
+  <meta name="twitter:image" content="https://phin.health/uploads/og-image.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://phin.health/#organization",
+    "name": "PHIN",
+    "alternateName": "Personal Health INtelligence",
+    "url": "https://phin.health/",
+    "logo": "https://phin.health/uploads/og-image.png",
+    "email": "blake@phin.health",
+    "foundingDate": "2026-05",
+    "founder": { "@type": "Person", "name": "Blake Lee", "jobTitle": "Founder & CEO" },
+    "address": { "@type": "PostalAddress", "addressCountry": "KR" },
+    "sameAs": ["https://play.google.com/store/apps/details?id=com.phin.health"]
+  }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f0d; --bg-1: #111613; --bg-2: #181f1c;
+      --brand: #054d28; --accent: #39ff6a; --accent-soft: #93d6a8;
+      --ink-hi: #ffffff; --ink-mid: #a8b1ad; --ink-lo: #5b6661;
+      --line: #1a221e; --line-strong: #242c28;
+      --font: 'Inter', 'Pretendard', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { background: var(--bg); color: var(--ink-hi); font-family: var(--font); line-height: 1.6; font-size: 17px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+
+    header.top { border-bottom: 1px solid var(--line); }
+    header.top .wrap { display: flex; justify-content: space-between; align-items: center; height: 64px; }
+    .logo { font-weight: 800; letter-spacing: 0.02em; font-size: 20px; color: var(--ink-hi); }
+    .logo span { color: var(--accent); }
+    .nav { display: flex; gap: 18px; align-items: center; font-size: 14px; }
+    .nav a { color: var(--ink-mid); }
+    .nav a:hover { color: var(--ink-hi); text-decoration: none; }
+    .nav .play { color: var(--accent); font-weight: 600; }
+    ol.road { list-style: none; display: grid; gap: 10px; }
+    ol.road li { background: var(--bg-1); border: 1px solid var(--line-strong); border-radius: 12px; padding: 14px 16px; }
+    ol.road b { color: var(--accent-soft); font-weight: 700; margin-right: 8px; }
+
+    .hero { padding: 72px 0 48px; }
+    .eyebrow { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-soft); font-weight: 600; margin-bottom: 16px; }
+    h1 { font-size: clamp(34px, 6vw, 54px); line-height: 1.08; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 20px; }
+    h1 em { font-style: normal; color: var(--accent); }
+    .lead { font-size: 19px; color: var(--ink-mid); max-width: 680px; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+    .btn { display: inline-block; padding: 13px 22px; border-radius: 999px; font-weight: 600; font-size: 15px; }
+    .btn-primary { background: var(--accent); color: #04140a; }
+    .btn-ghost { border: 1px solid var(--line-strong); color: var(--ink-hi); }
+    .btn:hover { text-decoration: none; filter: brightness(1.08); }
+
+    section { padding: 40px 0; border-top: 1px solid var(--line); }
+    h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 18px; }
+    p + p { margin-top: 12px; }
+    .muted { color: var(--ink-mid); }
+
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 8px; }
+    .card { background: var(--bg-1); border: 1px solid var(--line-strong); border-radius: 16px; padding: 20px; }
+    .card h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+    .card p { font-size: 15px; color: var(--ink-mid); }
+    .num { font-size: 12px; color: var(--accent); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 8px; }
+
+    .domains { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .chip { font-size: 14px; padding: 6px 12px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--line-strong); color: var(--ink-hi); }
+
+    dl.facts { display: grid; grid-template-columns: 200px 1fr; gap: 12px 20px; }
+    dl.facts dt { color: var(--ink-lo); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 2px; }
+    dl.facts dd { color: var(--ink-hi); }
+
+    .note { font-size: 14px; color: var(--ink-lo); background: var(--bg-1); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+
+    footer { border-top: 1px solid var(--line); padding: 32px 0 48px; font-size: 14px; color: var(--ink-lo); }
+    footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+    @media (max-width: 640px) {
+      body { font-size: 16px; }
+      .hero { padding: 48px 0 32px; }
+      .grid { grid-template-columns: 1fr; }
+      dl.facts { grid-template-columns: 1fr; gap: 2px 0; }
+      dl.facts dd { margin-bottom: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="logo" href="/">PH<span>i</span>N</a>
+      <nav class="nav">
+        <a href="/">한국어</a>
+        <a href="/privacy.html">Privacy</a>
+        <a class="play" href="https://play.google.com/store/apps/details?id=com.phin.health">Get the app</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="wrap">
+        <div class="eyebrow">Personal Health INtelligence</div>
+        <h1>One number for your health.<br><em>Compared with people your age.</em></h1>
+        <p class="lead">PHIN turns your lifestyle, body composition, health-checkup results and daily activity into a single 0–100 PHIN Score, shows where you stand among your age peers, and coaches you every day on what to do next.</p>
+        <div class="cta">
+          <a class="btn btn-primary" href="https://play.google.com/store/apps/details?id=com.phin.health">Get it on Google Play</a>
+          <a class="btn btn-ghost" href="/">Try the 30-second check (Korean)</a>
+        </div>
+      </div>
+    </div>
+
+    <section>
+      <div class="wrap">
+        <h2>The problem</h2>
+        <p>Millions of adults in Korea receive a national health-checkup report every year, and most stop at the same question: <em>"So what should I actually do?"</em> Fitness apps list numbers; coaching programs are expensive and narrow. Nothing connects measurement to daily behavior for ordinary people in their 30s to 50s.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>What PHIN does</h2>
+        <div class="grid">
+          <div class="card"><div class="num">01 · MEASURE</div><h3>Collect</h3><p>Onboarding survey, body-composition data, checkup values and activity from a phone or smartwatch.</p></div>
+          <div class="card"><div class="num">02 · INTERPRET</div><h3>Score</h3><p>A 0–100 PHIN Score, a lifestyle-based "body age", and a percentile against your age group.</p></div>
+          <div class="card"><div class="num">03 · ACT</div><h3>Coach</h3><p>Daily exercise and diet nudges matched to your score, schedule and personality type.</p></div>
+          <div class="card"><div class="num">04 · HABIT</div><h3>Repeat</h3><p>Home-screen widget and one-tap check-ins designed so that three days a week counts as 100%.</p></div>
+        </div>
+        <p class="muted" style="margin-top:20px;">The score is built from five domains:</p>
+        <div class="domains">
+          <span class="chip">Lifestyle habits</span>
+          <span class="chip">Health-checkup indicators</span>
+          <span class="chip">Body composition</span>
+          <span class="chip">Diet</span>
+          <span class="chip">Exercise &amp; activity</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Built with Claude</h2>
+        <p>PHIN is built by a solo, non-engineer founder. The entire product — the Flutter app, the Supabase backend, the scoring engine, the exercise-recommendation engine and the safety system — was designed and coded with <strong>Claude Code</strong> acting as the engineering team.</p>
+        <!-- 아래 문단은 코칭 생성을 Claude API로 실제 전환한 뒤에만 주석을 해제하세요. -->
+        <!--
+        <p>Inside the app, PHIN's AI coaching is generated by <strong>Claude</strong> through a server-side Supabase Edge Function that is JWT-authenticated, rate-limited per user and capped on spend.</p>
+        -->
+        <p>Every screen shares a single "redline" safety function: when risk signals appear, PHIN stops praising and recommends seeing a doctor.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>What's next</h2>
+        <ol class="road">
+          <li><b>Now</b>Android app live in Korea · in-app coaching, PHIN Score, body age and age-peer ranking</li>
+          <li><b>Next</b>Health-checkup report OCR turned into a personalized plan · weekly AI health reports · iOS release</li>
+          <li><b>Later</b>Japanese and Traditional Chinese versions for Japan, Taiwan and Singapore</li>
+        </ol>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Company</h2>
+        <dl class="facts">
+          <dt>Name</dt><dd>PHIN (Personal Health INtelligence)</dd>
+          <dt>Founder</dt><dd>Blake Lee, Founder &amp; CEO</dd>
+          <dt>Based in</dt><dd>South Korea</dd>
+          <dt>Started</dt><dd>May 2026</dd>
+          <dt>Product</dt><dd>Android app, live on <a href="https://play.google.com/store/apps/details?id=com.phin.health">Google Play</a> since September 2026 · iOS in development</dd>
+          <dt>Markets</dt><dd>Korea first, then Japan, Taiwan and Singapore</dd>
+          <dt>Trademark</dt><dd>PHIN filed with the Korean Intellectual Property Office (June 2026)</dd>
+          <dt>Contact</dt><dd><a href="mailto:blake@phin.health">blake@phin.health</a></dd>
+        </dl>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="note">PHIN is a non-medical wellness service. It does not diagnose, treat or prescribe. Scores and suggestions are lifestyle-management information; always consult a medical professional about health concerns.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>© 2026 PHIN · Personal Health INtelligence · South Korea</span>
+      <span><a href="/privacy.html">Privacy policy</a> · <a href="mailto:blake@phin.health">blake@phin.health</a></span>
+    </div>
+  </footer>
+</body>
+</html>

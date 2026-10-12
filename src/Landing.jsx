@@ -189,7 +189,8 @@ function Landing({ onStart }) {
             <a className="phin-body-sm t-mid" style={{ textDecoration:'none', cursor:'pointer', whiteSpace:'nowrap' }}>클럽</a>
           </nav>
           <div style={{ flex:1 }} />
-          <a className="phin-body-sm t-mid phin-nav-desktop" style={{ textDecoration:'none', cursor:'pointer', whiteSpace:'nowrap' }}>앱 다운로드</a>
+          <a className="phin-body-sm t-mid" href="/about.html" lang="en" style={{ textDecoration:'none', whiteSpace:'nowrap' }}>EN</a>
+          <a className="phin-body-sm t-mid phin-nav-desktop" href="https://play.google.com/store/apps/details?id=com.phin.health" style={{ textDecoration:'none', whiteSpace:'nowrap' }}>앱 다운로드</a>
           <button className="phin-btn phin-btn-primary" onClick={onStart} style={{ padding:'10px 18px', fontSize:14 }}>진단 시작</button>
         </div>
       </header>
@@ -271,7 +272,12 @@ function Landing({ onStart }) {
       <footer style={{ borderTop:'1px solid var(--line)', padding:'32px 0', marginTop:32 }}>
         <div className="phin-container" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12 }}>
           <Logo size={16} />
-          <div className="phin-caption t-lo">© 2026 PHIN · Personal Health INtelligence · blake@phin.health</div>
+          <div className="phin-caption t-lo">© 2026 PHIN · Personal Health INtelligence · South Korea · <a href="mailto:blake@phin.health" style={{ color:'inherit' }}>blake@phin.health</a></div>
+          <nav className="phin-caption" style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+            <a href="/about.html" lang="en" style={{ color:'var(--ink-mid)', textDecoration:'none' }}>About (English)</a>
+            <a href="/privacy.html" style={{ color:'var(--ink-mid)', textDecoration:'none' }}>개인정보처리방침</a>
+            <a href="https://play.google.com/store/apps/details?id=com.phin.health" style={{ color:'var(--accent)', textDecoration:'none' }}>Google Play</a>
+          </nav>
         </div>
       </footer>
     </div>
