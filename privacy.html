@@ -273,13 +273,22 @@
       <li>보관 기간: 회원 탈퇴 시까지</li>
     </ul>
 
-    <div class="sub-title"><span class="tag">OpenAI</span> AI 코칭 분석</div>
+    <div class="sub-title"><span class="tag">Anthropic, PBC</span> AI 건강 코칭</div>
     <ul>
-      <li>위탁 목적: AI 건강 코칭 텍스트 생성, 식단 사진 분석, 건강검진 OCR</li>
-      <li>전송 정보: 건강 데이터 요약본 (닉네임·나이·건강지수 등)</li>
+      <li>위탁 목적: AI 건강 코칭 텍스트 생성 (일일·주간 리포트)</li>
+      <li>전송 정보: 건강 데이터 요약본 (닉네임·나이·건강지수·수면·운동·BMI 등)</li>
+      <li>이전 국가: 미국</li>
+      <li>이전 시기·방법: 코칭 요청 시마다 API 암호화 전송</li>
+      <li>데이터 보관: 전송 후 최대 30일 자동 삭제 (Anthropic API 기본 정책)</li>
+      <li>모델 학습 사용 여부: 미사용 (Anthropic 상업 이용 약관 기준)</li>
+    </ul>
+
+    <div class="sub-title"><span class="tag">OpenAI</span> 이미지 분석</div>
+    <ul>
+      <li>위탁 목적: 식단 사진 분석, 건강검진 결과지 OCR</li>
+      <li>전송 정보: 사용자가 직접 촬영·업로드한 이미지</li>
       <li>데이터 보관: 전송 후 최대 30일 자동 삭제 (OpenAI API 기본값)</li>
       <li>모델 학습 사용 여부: 미사용 (API 기본 정책)</li>
-      <li>익명화: 별도 익명화 처리 없이 요약 데이터 전송 (API 키 서버 측 격리 보관)</li>
     </ul>
 
     <div class="sub-title"><span class="tag">Kakao</span> 소셜 로그인</div>
@@ -349,7 +358,7 @@
     <p>This is a summary of the Korean privacy policy above, which is the governing version. PHIN (Personal Health INtelligence, South Korea) uses your health data only to provide personalized wellness coaching: the 0–100 PHIN Score, body age, age-peer comparison, exercise and diet coaching, and safety alerts that recommend seeing a doctor when risk signals appear. PHIN is not a medical service and does not diagnose or treat.</p>
     <ul>
       <li><strong>Data we collect:</strong> account details, basic body measurements, lifestyle habits and personality type; optionally health-checkup values, medical and family history, smartwatch activity (via Health Connect), cycle data and meal photos.</li>
-      <li><strong>Processors:</strong> Supabase (database and authentication, Seoul region), OpenAI (AI coaching text, meal-photo analysis, checkup OCR; summaries only, not used for model training), Kakao (social login), Google Health Connect (wearable data, permission controlled by you).</li>
+      <li><strong>Processors:</strong> Supabase (database and authentication, Seoul region), Anthropic PBC — USA (AI health coaching text, daily and weekly reports; summaries only, not used for model training), OpenAI (meal-photo analysis and checkup OCR only; not used for model training), Kakao (social login), Google Health Connect (wearable data, permission controlled by you).</li>
       <li><strong>No advertising:</strong> health data is never sold or shared for marketing.</li>
       <li><strong>Deletion:</strong> deleting your account removes all your data immediately. For other requests, email <a href="mailto:blake@phin.health" style="color:var(--green);">blake@phin.health</a>; we respond within 10 days.</li>
     </ul>
